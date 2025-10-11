@@ -1,6 +1,10 @@
 # Submoda Development Environment
 # Managed by mise (https://mise.jdx.dev)
 
+[settings]
+# Use cargo-binstall for faster installations
+cargo_binstall = true
+
 [tools]
 # Rust pinned for reproducibility
 rust = "1.90.0"
@@ -8,19 +12,10 @@ rust = "1.90.0"
 # Python for PyO3 bindings and data generation scripts
 python = "3.12.11"
 
-[tasks.setup]
-description = "Setup development environment"
-run = """
-  set -e
-  # Install cargo-binstall if not present
-  if ! command -v cargo-binstall &> /dev/null; then
-    echo "Installing cargo-binstall..."
-    cargo install cargo-binstall
-  fi
-  # Install useful Cargo tools using pre-compiled binaries
-  cargo binstall --no-confirm cargo-edit cargo-watch cargo-nextest
-  echo "✓ Development environment ready"
-"""
+# Cargo tools managed by mise, installed with binstall
+"cargo:cargo-edit" = "latest"
+"cargo:cargo-watch" = "latest"
+"cargo:cargo-nextest" = "latest"
 
 [tasks.test]
 description = "Run tests"
@@ -32,7 +27,7 @@ run = "cargo bench --workspace"
 
 [tasks.watch]
 description = "Watch and rebuild on changes"
-run = "cargo watch -x check -x test"
+run = "cargo watch -x 'nextest run'"
 
 [tasks.fmt]
 description = "Format code"
@@ -40,7 +35,7 @@ run = "cargo fmt --all"
 
 [tasks.lint]
 description = "Run clippy linter"
-run = "cargo clippy --workspace --all-targets -- -D warnings"
+run = "cargo clippy --workspace --all-targets -- -D warnings -D clippy::pedantic -D clippy::nursery"
 
 [env]
 # Set default Rust flags for development
