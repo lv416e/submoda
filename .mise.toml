@@ -28,7 +28,7 @@ run = "cargo bench --workspace"
 
 [tasks.watch]
 description = "Watch and rebuild on changes"
-run = "cargo watch -x 'nextest run --workspace'"
+run = "cargo watch -x 'check --workspace --all-targets' -x 'nextest run --workspace'"
 
 [tasks.fmt]
 description = "Format code"
@@ -37,6 +37,7 @@ run = "cargo fmt --all"
 [tasks.lint]
 description = "Run clippy linter"
 run = "cargo clippy --workspace --all-targets --no-deps -- -D warnings -W clippy::pedantic -W clippy::nursery"
+deps = ["fmt"]
 
 [tasks.check]
 description = "Check the project for errors"
