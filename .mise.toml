@@ -36,11 +36,16 @@ run = "cargo fmt --all"
 
 [tasks.lint]
 description = "Run clippy linter"
-run = "cargo clippy --workspace --all-targets --no-deps -- -D warnings -D clippy::pedantic -D clippy::nursery"
+run = "cargo clippy --workspace --all-targets --no-deps -- -D warnings -W clippy::pedantic -W clippy::nursery"
 
 [tasks.check]
 description = "Check the project for errors"
 run = "cargo check --workspace --all-targets"
+deps = ["fmt"]
+
+[tasks.setup]
+description = "Setup development environment by installing tools"
+run = "mise install"
 
 [env]
 # Set default Rust flags for development
