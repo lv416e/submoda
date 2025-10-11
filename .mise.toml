@@ -1,0 +1,42 @@
+# Submoda Development Environment
+# Managed by mise (https://mise.jdx.dev)
+
+[tools]
+# Rust stable channel (latest)
+rust = "latest"
+
+# Python for PyO3 bindings and data generation scripts
+python = "3.12"
+
+[tasks.setup]
+description = "Setup development environment"
+run = """
+  # Install useful Cargo tools
+  cargo install cargo-edit cargo-watch cargo-nextest
+  echo "✓ Development environment ready"
+"""
+
+[tasks.test]
+description = "Run tests"
+run = "cargo test --workspace"
+
+[tasks.bench]
+description = "Run benchmarks"
+run = "cargo bench --workspace"
+
+[tasks.watch]
+description = "Watch and rebuild on changes"
+run = "cargo watch -x check -x test"
+
+[tasks.fmt]
+description = "Format code"
+run = "cargo fmt --all"
+
+[tasks.lint]
+description = "Run clippy linter"
+run = "cargo clippy --workspace --all-targets -- -D warnings"
+
+[env]
+# Set default Rust flags for development
+RUST_BACKTRACE = "1"
+RUST_LOG = "info"
