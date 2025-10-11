@@ -10,7 +10,7 @@ cargo_binstall = true
 rust = "1.90.0"
 
 # Python for PyO3 bindings and data generation scripts
-python = "3.12.11"
+python = "3.12.12"
 
 # Cargo tools managed by mise, installed with binstall
 # Pinned for reproducibility
@@ -28,7 +28,7 @@ run = "cargo bench --workspace"
 
 [tasks.watch]
 description = "Watch and rebuild on changes"
-run = "cargo watch -x 'nextest run'"
+run = "cargo watch -x 'nextest run --workspace'"
 
 [tasks.fmt]
 description = "Format code"
@@ -37,6 +37,10 @@ run = "cargo fmt --all"
 [tasks.lint]
 description = "Run clippy linter"
 run = "cargo clippy --workspace --all-targets --no-deps -- -D warnings -D clippy::pedantic -D clippy::nursery"
+
+[tasks.check]
+description = "Check the project for errors"
+run = "cargo check --workspace --all-targets"
 
 [env]
 # Set default Rust flags for development
