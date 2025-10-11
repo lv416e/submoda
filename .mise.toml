@@ -2,23 +2,25 @@
 # Managed by mise (https://mise.jdx.dev)
 
 [tools]
-# Rust stable channel (latest)
-rust = "latest"
+# Rust pinned for reproducibility
+rust = "1.90.0"
 
 # Python for PyO3 bindings and data generation scripts
-python = "3.12"
+python = "3.12.11"
 
 [tasks.setup]
 description = "Setup development environment"
 run = """
-  # Install useful Cargo tools
-  cargo install cargo-edit cargo-watch cargo-nextest
+  # Install cargo-binstall if not present, then use it for other tools
+  cargo install cargo-binstall
+  # Install useful Cargo tools using pre-compiled binaries
+  cargo binstall --no-confirm cargo-edit cargo-watch cargo-nextest
   echo "✓ Development environment ready"
 """
 
 [tasks.test]
 description = "Run tests"
-run = "cargo test --workspace"
+run = "cargo nextest run --workspace"
 
 [tasks.bench]
 description = "Run benchmarks"
