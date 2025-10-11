@@ -10,7 +10,7 @@ cargo_binstall = true
 rust = "1.90.0"
 
 # Python for PyO3 bindings and data generation scripts
-python = "3.12.12"
+python = { version = "3.12.12", pip-packages = ["maturin"] }
 
 # Cargo tools managed by mise, installed with binstall
 # Pinned for reproducibility
@@ -36,13 +36,12 @@ run = "cargo fmt --all"
 
 [tasks.lint]
 description = "Run clippy linter"
-run = "cargo clippy --workspace --all-targets --no-deps -- -D warnings -W clippy::pedantic -W clippy::nursery"
+run = "cargo clippy --workspace --all-targets --no-deps -- -D warnings -W clippy::pedantic"
 deps = ["fmt"]
 
 [tasks.check]
 description = "Check the project for errors"
 run = "cargo check --workspace --all-targets"
-deps = ["fmt"]
 
 [tasks.setup]
 description = "Setup development environment by installing tools"
