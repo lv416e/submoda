@@ -13,9 +13,10 @@ rust = "1.90.0"
 python = "3.12.11"
 
 # Cargo tools managed by mise, installed with binstall
-"cargo:cargo-edit" = "latest"
-"cargo:cargo-watch" = "latest"
-"cargo:cargo-nextest" = "latest"
+# Pinned for reproducibility
+"cargo:cargo-edit" = "0.13.7"
+"cargo:cargo-watch" = "8.5.3"
+"cargo:cargo-nextest" = "0.9.105"
 
 [tasks.test]
 description = "Run tests"
@@ -35,7 +36,7 @@ run = "cargo fmt --all"
 
 [tasks.lint]
 description = "Run clippy linter"
-run = "cargo clippy --workspace --all-targets -- -D warnings -D clippy::pedantic -D clippy::nursery"
+run = "cargo clippy --workspace --all-targets --no-deps -- -D warnings -D clippy::pedantic -D clippy::nursery"
 
 [env]
 # Set default Rust flags for development
