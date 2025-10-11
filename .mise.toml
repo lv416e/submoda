@@ -11,8 +11,12 @@ python = "3.12.11"
 [tasks.setup]
 description = "Setup development environment"
 run = """
-  # Install cargo-binstall if not present, then use it for other tools
-  cargo install cargo-binstall
+  set -e
+  # Install cargo-binstall if not present
+  if ! command -v cargo-binstall &> /dev/null; then
+    echo "Installing cargo-binstall..."
+    cargo install cargo-binstall
+  fi
   # Install useful Cargo tools using pre-compiled binaries
   cargo binstall --no-confirm cargo-edit cargo-watch cargo-nextest
   echo "✓ Development environment ready"
