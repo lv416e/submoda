@@ -39,9 +39,11 @@ description = "Format code"
 run = "cargo fmt --all"
 
 [tasks.lint]
-description = "Run clippy linter"
-run = "cargo clippy --workspace --all-targets --no-deps -- -D warnings -W clippy::pedantic"
-depends = ["fmt"]
+description = "Run format check and clippy linter"
+run = [
+    "cargo fmt --all -- --check",
+    "cargo clippy --workspace --all-targets --no-deps -- -D warnings -W clippy::pedantic"
+]
 
 [tasks.check]
 description = "Check the project for errors"

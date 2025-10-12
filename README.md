@@ -42,6 +42,7 @@ Python dependencies are managed with [pip-tools](https://github.com/jazzband/pip
 
 - Edit `requirements-dev.in` to add/update dependencies
 - Run `mise run pip-compile` to generate `requirements-dev.txt`
+- Run `mise run setup` to install the updated dependencies
 - Commit both files
 
 ## Docs
