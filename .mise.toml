@@ -67,7 +67,7 @@ depends = ["install-pip-tools"]
 
 [tasks.setup]
 description = "Set up the development environment"
-run = "maturin develop"
+run = "echo 'Development environment ready. Run maturin develop after creating Cargo.toml.'"
 depends = [
     "rust",
     "python",
