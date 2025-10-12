@@ -28,7 +28,7 @@ run = "cargo bench --workspace"
 
 [tasks.watch]
 description = "Watch and rebuild on changes"
-run = "cargo watch -s 'mise run check && mise run test'"
+run = "cargo watch -c -s 'mise run check && mise run test'"
 
 [tasks.fmt]
 description = "Format code"

@@ -5,5 +5,5 @@
 maturin==1.9.6
 
 # Data generation and analysis tools
-numpy==2.3.3
-pandas==2.3.3
+numpy==2.2.6
+pandas==2.2.2
