@@ -1,8 +1,8 @@
 # Tasks: Submoda Submodular Optimization Platform
 
 **Feature**: Complete implementation of submoda platform based on `docs/specification.md`
-**Total Tasks**: 249 tasks (updated: +14 performance & explainability tasks)
-**MVP Scope**: 44 tasks (Phase 1-3) → 4-5 weeks (includes SIMD & I/O optimizations)
+**Total Tasks**: 265 tasks (updated: +30 total: 14 performance/explainability + 16 production-readiness)
+**MVP Scope**: 50 tasks (Phase 1-3) → 5-6 weeks (includes SIMD, I/O, quickstart, CI)
 **Input**: spec.md, plan.md, docs/specification.md, contracts/*.json
 
 ## Format: `[ID] [P?] Description`
@@ -19,7 +19,7 @@
 
 - [ ] **T001**: Create Cargo workspace with 6 crates (submod-core, submod-objectives, submod-solver, submod-io, submod-bindings-py, submod-service) | Files: Cargo.toml, */Cargo.toml | Deps: None | Verify: `cargo build --workspace` succeeds
 
-- [ ] **T002**: Configure dependencies in each Cargo.toml (rayon, arrow, parquet, fixedbitset, pyo3, prometheus, anyhow, thiserror per plan.md) | Files: All Cargo.toml | Deps: T001 | Verify: `cargo check --workspace` succeeds
+- [ ] **T002**: Configure dependencies in each Cargo.toml (rayon, arrow, parquet, fixedbitset, pyo3, prometheus, anyhow, thiserror per specification.md §2.1) | Files: All Cargo.toml | Deps: T001 | Verify: `cargo check --workspace` succeeds
 
 - [ ] **T003**: Setup GitHub Actions CI (Linux/macOS/Windows × stable/nightly, tests + clippy) | Files: .github/workflows/ci.yml | Deps: T001 | Verify: Push triggers successful CI run
 
@@ -53,10 +53,10 @@
 
 ---
 
-## Phase 3: User Story 1 - Large-Scale Subset Selection (32 tasks) [P1 - MVP] 🎯
+## Phase 3: User Story 1 - Large-Scale Subset Selection (40 tasks) [P1 - MVP] 🎯
 
-**Goal**: Select 250 facilities from 1M candidates in <10 minutes (with SIMD & I/O optimizations)
-**Independent Test**: Load 1M×1M dataset, run lazy greedy, verify <10 min + ≥63% approximation
+**Goal**: Select 250 facilities from 1M candidates in <10 minutes (with SIMD, I/O, quickstart, CI, docs)
+**Independent Test**: Load 1M×1M dataset, run lazy greedy, verify <10 min + ≥63% approximation + quickstart reproducible
 
 ### US1.1: FacilityLocation Oracle (submod-objectives)
 
@@ -132,14 +132,34 @@
 
 - [ ] **T037**: Verify ≥63% approximation ratio (small problem 50×100, k=5, brute force optimal comparison) | Files: tests/integration/approximation_ratio.rs | Deps: T013-T024 | Verify: Ratio ≥0.63 (actual ≥0.66 typically)
 
+### US1.6: Quickstart & CI Enhancements [CRITICAL - MVP]
+
+- [ ] **T037d** [P]: Create quickstart dataset (10KB, 100 demands, 50 candidates, 10% density per spec §11.1) | Files: data/quickstart_demand.parquet, data/quickstart_utility.parquet, scripts/generate_quickstart.py | Deps: T027 | Verify: Dataset is 10KB total, loads successfully, 500 non-zeros
+
+- [ ] **T037e**: Write quickstart.sh with exact commands and expected output (cargo run with seed=42, objective ~45.2±0.1, selection deterministic) | Files: quickstart.sh, docs/quickstart.md | Deps: T037d, T013-T037 | Verify: Script runs in <1 second, outputs hash matching spec §11.2
+
+- [ ] **T037f**: Verify quickstart deterministic hash (run twice with seed=42, verify identical audit log hash) | Files: tests/integration/quickstart_deterministic.rs | Deps: T037e, T058 | Verify: Two runs produce identical hash, documented in quickstart.md
+
+- [ ] **T037g**: Add determinism CI job (GitHub Actions: run on 1/8/64 threads, verify all audit log hashes match) | Files: .github/workflows/determinism.yml | Deps: T037f, T003 | Verify: CI passes with 3 identical hashes across thread counts
+
+- [ ] **T037h**: Add performance regression CI (compare with baseline from T035, alert if >5% degradation) | Files: .github/workflows/perf-regression.yml | Deps: T035, T003 | Verify: CI tracks runtime, fails if regression >5%
+
+- [ ] **T037i**: Add cross-platform hash comparison (log hashes from Linux/macOS/Windows, manual review for now) | Files: .github/workflows/ci.yml (extend) | Deps: T037g, T003 | Verify: Hashes logged per platform, aspirational equality per spec §9.6
+
+### US1.7: MVP Documentation [CRITICAL]
+
+- [ ] **T037j**: Write MVP quickstart guide Rust-only (FacilityLocation + LazyGreedy, uses quickstart dataset from T037d) | Files: docs/quickstart_mvp.md | Deps: T037e, T013-T037 | Verify: Guide follows spec §11.1-11.3 format, runnable example
+
+- [ ] **T037k**: Generate rustdoc for Phase 1-3 crates (core/objectives/solver/io, verify all public items documented) | Files: Run `cargo doc`, fix warnings | Deps: T005-T037 | Verify: `cargo doc --no-deps` produces no warnings, all traits/structs have docs
+
 **Checkpoint**: MVP complete - User Story 1 fully functional and testable independently
 
 ---
 
-## Phase 4: User Story 2 - Production-Grade Reliability (25 tasks) [P1]
+## Phase 4: User Story 2 - Production-Grade Reliability (32 tasks) [P1]
 
-**Goal**: Numerical stability, graceful error handling, comprehensive audit trails
-**Independent Test**: Log-determinant on ill-conditioned matrices completes without panic, audit logs validate
+**Goal**: Numerical stability, error handling, audit trails, epsilon arithmetic, resource limits, DoS protection
+**Independent Test**: Log-determinant on ill-conditioned matrices completes without panic, DoS scenarios rejected, audit logs validate
 
 ### US2.1: Log-Determinant Oracle (submod-objectives) - 5-Layer Defense
 
@@ -173,6 +193,12 @@
 
 - [ ] **T051** [P]: Add validation checks in solve() (validate epsilon>0, max_iterations>0, universe_size>0, initial feasibility) | Files: submod-solver/src/lib.rs | Deps: T048 | Verify: Each invalid config returns ConfigurationError
 
+- [ ] **T051a** [P]: Implement epsilon-aware constraint arithmetic for Knapsack (use epsilon=1e-9, check used + epsilon*budget.abs() >= budget per spec §8.4) | Files: submod-core/src/constraints/knapsack.rs | Deps: T051 | Verify: Boundary comparison uses epsilon, no exact float equality
+
+- [ ] **T051b**: Test boundary conditions for constraint arithmetic (budget ± 1e-9, exactly at limit, verify epsilon prevents false positives/negatives) | Files: submod-core/tests/constraint_arithmetic.rs | Deps: T051a | Verify: Tests pass for edge cases within epsilon of boundary
+
+- [ ] **T051c**: Document floating-point comparison policy (docs/numerics.md section on constraint arithmetic, epsilon values for different precision) | Files: docs/numerics.md | Deps: T051a-T051b | Verify: Policy documented with examples from spec §8.4
+
 - [ ] **T052**: Unit tests for each error variant (test all 5 error types with realistic scenarios) | Files: submod-solver/src/error.rs | Deps: T048-T051 | Verify: All error variants tested, messages include file:line
 
 ### US2.3: Audit Logging (submod-io)
@@ -199,14 +225,24 @@
 
 - [ ] **T062**: Load test with 100 consecutive runs (monitor memory usage, verify no leaks) | Files: tests/integration/us2_reliability.rs | Deps: T013-T047 | Verify: Memory stable across 100 runs
 
+### US2.5: Resource Limits & DoS Protection [IMPORTANT]
+
+- [ ] **T062a** [P]: Add memory limit validation (estimate memory from n×m×density, reject if estimated_size > max_memory config) | Files: submod-io/src/parquet.rs | Deps: T027 | Verify: Loading 10GB dataset with 1GB limit fails with clear error
+
+- [ ] **T062b** [P]: Add resource limits to SolverConfig (max_memory: Option<usize>, max_walltime: Option<Duration>, default None=unlimited) | Files: submod-solver/src/config.rs | Deps: T066, T012 | Verify: Config compiles, limits documented as optional
+
+- [ ] **T062c**: Test DoS scenarios (k=10^9 fails validation, 10GB Parquet exceeds memory limit, timeout after 1s works) | Files: tests/integration/dos_protection.rs | Deps: T062a-T062b | Verify: All 3 attack vectors rejected with appropriate errors
+
+- [ ] **T062d**: Update MVP quickstart with LogDeterminant example (add ill-conditioned matrix test, show 5-layer defense) | Files: docs/quickstart_mvp.md | Deps: T037j, T038-T047 | Verify: Example demonstrates graceful degradation
+
 **Checkpoint**: Production-ready reliability - US1 and US2 both work independently
 
 ---
 
-## Phase 5: User Story 3 - Reproducible Results (20 tasks) [P2]
+## Phase 5: User Story 3 - Reproducible Results (21 tasks) [P2]
 
-**Goal**: Identical results across 1-64 threads with same seed
-**Independent Test**: Audit log hashes match for runs with seed=42 on 1/8/64 threads
+**Goal**: Identical results across 1-64 threads with same seed, comprehensive determinism guide
+**Independent Test**: Audit log hashes match for runs with seed=42 on 1/8/64 threads, guide examples reproducible
 
 ### US3.1-3.5: Determinism Infrastructure
 
@@ -249,6 +285,8 @@
 - [ ] **T081**: Verify all hashes identical (assert 1/8/64 thread hashes are bitwise identical) | Files: tests/integration/us3_determinism.rs | Deps: T079-T080 | Verify: Test passes, all 3 hashes match
 
 - [ ] **T082**: Document determinism guarantees (docs/determinism.md: hierarchical seeding, tie-breaking modes, fixed-order overhead, limitations) | Files: docs/determinism.md | Deps: T063-T081 | Verify: Documentation complete with examples
+
+- [ ] **T082a**: Write determinism guide with concrete examples (seed=42 walkthrough, comparison table of tie-breaking modes, troubleshooting section) | Files: docs/determinism_guide.md | Deps: T082 | Verify: Guide includes 3+ runnable examples, cross-referenced from quickstart
 
 **Checkpoint**: Determinism verified - US1, US2, US3 all work independently
 
@@ -293,10 +331,10 @@
 
 ---
 
-## Phase 7: User Story 5 - Monitoring (36 tasks) [P3]
+## Phase 7: User Story 5 - Monitoring (39 tasks) [P3]
 
-**Goal**: Prometheus metrics, HTTP /metrics endpoint, explainability features, <0.1% overhead
-**Independent Test**: Query /metrics endpoint, verify all 15+ metrics present, generate coverage reports
+**Goal**: Prometheus metrics, HTTP /metrics endpoint, explainability, baselines, alerting, <0.1% overhead
+**Independent Test**: Query /metrics endpoint, verify all 15+ metrics present, alerts fire on violations, coverage reports generated
 
 ### US5.1-5.5: Monitoring Infrastructure (Condensed)
 
@@ -317,6 +355,14 @@
 - [ ] **T147d** [P]: Implement curvature κ computation (measure diminishing returns rate: κ = 1 - min_{e,S} Δ(e|S)/Δ(e|∅)) | Files: submod-objectives/src/utils.rs | Deps: T005 | Verify: κ ∈ [0,1], κ→0 for modular (additive) functions, κ→1 for strongly submodular
 
 - [ ] **T147e**: Add summation accuracy helpers (Kahan summation for f32, pairwise summation for deterministic mode) | Files: submod-core/src/numerics.rs | Deps: T011 | Verify: Kahan reduces summation error by 100x on 10^6 random floats, pairwise matches sequential sum
+
+### US5.6: Monitoring Baselines & Alerting [IMPORTANT]
+
+- [ ] **T147f** [P]: Define healthy metric baselines (heap_reinsert_total/heap_pop_total < 0.1, io_wait_seconds/iteration_seconds < 0.05, gap_estimate < 0.01 for early stop) | Files: docs/monitoring_baselines.md | Deps: T117-T147 | Verify: Baselines documented with rationale from empirical data
+
+- [ ] **T147g** [P]: Create Prometheus alerting rules (YAML rules for: gap_estimate > 0.05 warning, io_wait > 0.5 critical, reinsert_ratio > 0.15 warning) | Files: deploy/prometheus_rules.yml | Deps: T147f, T132-T137 | Verify: Rules load in Prometheus, alerts fire on synthetic violations
+
+- [ ] **T147h**: Document metric interpretation guide (what each metric means, healthy ranges, troubleshooting steps for anomalies) | Files: docs/metrics_guide.md | Deps: T147f-T147g | Verify: Guide covers all 15+ metrics with interpretation
 
 **Checkpoint**: Monitoring complete - All P1/P2/P3 user stories independently functional
 
@@ -361,9 +407,9 @@
 
 ---
 
-## Phase 11: Documentation and Finalization (29 tasks)
+## Phase 11: Documentation and Finalization (30 tasks)
 
-**Goal**: Complete documentation, testing, release preparation
+**Goal**: Complete documentation, testing, release preparation, Appendix B validation
 **Deps**: All phases
 
 ### T207-T235: Documentation, Testing, Release (Condensed)
@@ -377,6 +423,24 @@
 - [ ] **T224-T229**: Comprehensive Testing (achieve >80% code coverage across all crates, add property tests for submodularity preservation, add property tests for constraint feasibility, add integration tests for all user story acceptance criteria, add performance regression tests with Criterion, add determinism regression tests with hash verification) | Files: tests/*, benches/* | Deps: All phases | Verify: Coverage >80%, all tests pass
 
 - [ ] **T230-T235**: Release Preparation (set up semantic versioning starting at 0.1.0, write CHANGELOG.md with initial release notes, add LICENSE file MIT or Apache-2.0, add CONTRIBUTING.md with development guidelines, set up cargo publish workflow, create GitHub release with binaries) | Files: Cargo.toml, CHANGELOG.md, LICENSE, CONTRIBUTING.md, .github/workflows/release.yml | Deps: All phases | Verify: Release artifacts ready
+
+- [ ] **T236**: Validate implementation against Appendix B Critical Implementation Checklist (verify all checkboxes from spec §B: oracle interface, selection representation, constraint callbacks, lazy greedy, continuous greedy, knapsack, log-determinant, determinism, I/O, monitoring) | Files: docs/appendix_b_validation.md | Deps: All phases | Verify: All 10 sections validated, documented deviations if any
+
+---
+
+## Phase 12: Advanced Features (3 tasks) [Nice-to-Have]
+
+**Goal**: Specialized algorithms for niche use cases (streaming, large-scale kernel approximation, sparse compression)
+**Deps**: Requires Phase 2 (traits), Phase 3 (solver), Phase 4 (oracles)
+**Priority**: Optional for v0.1.0, defer to v0.2.0 if time constrained
+
+- [ ] **T240**: Implement Sieve-Streaming algorithm (single-pass streaming, memory O(k log(1/ε)), geometric threshold levels per spec §5.5) | Files: submod-solver/src/sieve_streaming.rs | Deps: T005-T006, T010 | Verify: 1M stream processed in single pass, memory <10MB for k=250, achieves ≥50% approximation
+
+- [ ] **T241**: Implement Nyström low-rank approximation for LogDeterminant (K ≈ ZZ^T with rank r << n, compute log det(I + Z_S^T Z_S) in O(r^2 |S| + r^3) per spec §4.3 lines 681-691) | Files: submod-objectives/src/log_determinant_nystrom.rs | Deps: T038-T047 | Verify: 10K×10K kernel with r=100 completes in <1s, quality within 5% of full-rank
+
+- [ ] **T242**: Implement TopK compression for sparse matrices (retain top-L utilities per candidate, L~50, bounded degree per spec §7.5) | Files: submod-io/src/topk_compression.rs | Deps: T027 | Verify: 1M×1M matrix with 1000 avg degree compressed to L=50, marginal gains within 95% of full
+
+**Completion**: Advanced features enable specialized deployments (streaming pipelines, massive kernel DPPs, extreme-scale sparsity)
 
 ---
 
@@ -399,9 +463,9 @@ Phase 1 (Setup) → Phase 2 (Foundational) [BLOCKS ALL] → Phase 3 (MVP - US1) 
 - **Phase 11 (Docs)** needs all phases
 
 ### MVP vs Full Feature Set
-- **MVP Critical Path** (44 tasks): T001-T004 → T005-T012 → T013-T037 + T017a-c + T027a-d
-- **Production Critical Path** (69 tasks): MVP + Phase 4 (T038-T062)
-- **Full Feature Set** (249 tasks): All phases
+- **MVP Critical Path** (50 tasks): T001-T004 → T005-T012 → T013-T037k (includes SIMD, I/O, quickstart, CI, docs)
+- **Production Critical Path** (79 tasks): MVP + Phase 4 (T038-T062d, includes reliability + resource limits)
+- **Full Feature Set** (265 tasks): All phases including Phase 12 (advanced features)
 
 ### Parallel Opportunities
 - **Phase 2**: All 8 tasks [P] (independent type definitions)
@@ -414,23 +478,24 @@ Phase 1 (Setup) → Phase 2 (Foundational) [BLOCKS ALL] → Phase 3 (MVP - US1) 
 
 ## Summary
 
-**Total Tasks**: 249 (updated from 235, added 14 performance/explainability tasks)
-**MVP Scope** (Phase 1-3): **44 tasks → 4-5 weeks** (includes SIMD optimization + I/O sharding)
-**Extended Scope** (+ Phase 4): **69 tasks → 7-8 weeks**
-**Full Feature Set**: **249 tasks → 18-24 weeks** (1 developer, realistic estimate)
+**Total Tasks**: 265 (baseline 235 + 14 perf/explain + 16 production-readiness)
+**MVP Scope** (Phase 1-3): **50 tasks → 5-6 weeks** (SIMD, I/O, quickstart, CI, MVP docs)
+**Extended Scope** (+ Phase 4): **79 tasks → 8-10 weeks** (+ reliability, security)
+**Full Feature Set**: **265 tasks → 20-26 weeks** (1 developer, production-grade)
 
 **Task Breakdown by Phase**:
 - Phase 1 (Setup): 4 tasks
 - Phase 2 (Foundational): 8 tasks ← **BLOCKS ALL**
-- Phase 3 (US1 - Large-Scale P1): **32 tasks** (updated from 25, +7 SIMD/I/O tasks) ← **MVP ENDS**
-- Phase 4 (US2 - Reliability P1): 25 tasks
-- Phase 5 (US3 - Reproducibility P2): 20 tasks
-- Phase 6 (US4 - Constraints P2): **36 tasks** (updated from 34, expanded Continuous Greedy)
-- Phase 7 (US5 - Monitoring P3): **36 tasks** (updated from 31, +5 explainability tasks)
+- Phase 3 (US1 - Large-Scale P1): **40 tasks** (+8 from v1: quickstart, CI, MVP docs; includes SIMD/I/O from prior update) ← **MVP ENDS**
+- Phase 4 (US2 - Reliability P1): **32 tasks** (+7: epsilon arithmetic, resource limits, security)
+- Phase 5 (US3 - Reproducibility P2): **21 tasks** (+1: determinism guide)
+- Phase 6 (US4 - Constraints P2): 36 tasks
+- Phase 7 (US5 - Monitoring P3): **39 tasks** (+3: baselines, alerting, metric guide)
 - Phase 8 (Python Bindings): 21 tasks
 - Phase 9 (CLI/Service): 20 tasks
 - Phase 10 (Additional Oracles): 18 tasks
-- Phase 11 (Documentation/Finalization): 29 tasks
+- Phase 11 (Documentation/Finalization): **30 tasks** (+1: Appendix B validation)
+- Phase 12 (Advanced Features): **3 tasks** [Nice-to-Have] (Sieve-Streaming, Nyström, TopK)
 
 **User Story Verification** (Independent Tests):
 - **US1** (T034-T037): Load 1M×1M, run lazy greedy, <10 min, ≥63% approximation
@@ -439,14 +504,37 @@ Phase 1 (Setup) → Phase 2 (Foundational) [BLOCKS ALL] → Phase 3 (MVP - US1) 
 - **US4** (T113-T116): Continuous greedy on matroid, ≥60% of optimal
 - **US5** (T143-T147): Query /metrics endpoint, all metrics present, <0.1% overhead
 
-**Recommended Approach**: Start with **MVP (T001-T037)**, validate with stakeholders, then incrementally add **Phase 4 (reliability)** for production deployment.
+**Recommended Approach**: Start with **MVP (T001-T037k, 50 tasks)**, validate with stakeholders, then add **Phase 4 (reliability + security)** for production deployment.
 
 **Developer Allocation**:
-- **1 developer**: Sequential execution, **18-24 weeks** (realistic for production-grade implementation)
-- **2 developers**: Parallel tracks in Phase 3-7, **12-16 weeks**
-- **3 developers**: MVP + 2 parallel P1 tracks, **9-12 weeks**
+- **1 developer**: Sequential execution, **20-26 weeks** (realistic for production-grade with all Critical/Important tasks)
+- **2 developers**: Parallel tracks in Phase 3-7, **13-18 weeks**
+- **3 developers**: MVP + 2 parallel P1 tracks, **10-14 weeks**
 
-**Key Additions** (14 new tasks):
+**Key Additions** (30 new tasks total):
+
+**Critical (MVP-blocking, +8 tasks):**
+- T037d-f: Quickstart dataset + verification script (spec §11 compliance)
+- T037g-i: CI enhancements (determinism, performance regression, cross-platform)
+- T037j-k: MVP documentation (guide + rustdoc)
+
+**Critical (Production, +3 tasks):**
+- T051a-c: Epsilon-aware constraint arithmetic (spec §8.4)
+
+**Important (+5 tasks):**
+- T062a-d: Resource limits & DoS protection + quickstart update
+- T082a: Determinism guide with examples
+
+**Important (Monitoring, +3 tasks):**
+- T147f-h: Metric baselines, alerting rules, interpretation guide
+
+**Nice-to-Have (Phase 12, +3 tasks):**
+- T240-242: Sieve-Streaming, Nyström, TopK compression (defer to v0.2.0)
+
+**Finalization (+1 task):**
+- T236: Appendix B checklist validation
+
+**Original Additions (+14 from previous update):**
 - **Performance**: SIMD optimization (T017a-c), I/O sharding & prefetch (T027a-d)
 - **Correctness**: Continuous Greedy view-based safety (T107a), common RNs (T111a)
 - **Explainability**: Coverage reports, gap bounds, curvature, summation accuracy (T147a-e)
