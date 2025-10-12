@@ -1,0 +1,23 @@
+{
+  "feature_name": "submod-platform",
+  "created_at": "2025-10-12T00:00:00Z",
+  "updated_at": "2025-10-12T00:00:00Z",
+  "language": "en",
+  "phase": "ready-for-implementation",
+  "description": "Production-grade submodular optimization platform with Rust implementation for large-scale subset selection problems",
+  "approvals": {
+    "requirements": {
+      "generated": true,
+      "approved": true
+    },
+    "design": {
+      "generated": true,
+      "approved": true
+    },
+    "tasks": {
+      "generated": true,
+      "approved": true
+    }
+  },
+  "ready_for_implementation": true
+}
