@@ -1,0 +1,273 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "submoda Python API Contract (PyO3 Bindings)",
+  "description": "Python interface for submodular optimization with zero-copy NumPy integration",
+  "version": "0.1.0",
+  "module": "submoda",
+  "implementation": "submod-bindings-py",
+
+  "installation": {
+    "pip": "pip install submoda",
+    "build": "maturin develop --release",
+    "requirements": ["Python >= 3.10", "NumPy >= 1.20", "Optional: pandas >= 1.3"]
+  },
+
+  "classes": {
+    "FacilityLocation": {
+      "description": "Weighted maximum coverage objective function",
+      "constructor": {
+        "from_parquet": {
+          "signature": "FacilityLocation.from_parquet(demand_path: str, utility_path: str) -> FacilityLocation",
+          "parameters": {
+            "demand_path": "Path to demand.parquet with columns [i:uint32, w:float32]",
+            "utility_path": "Path to utility.parquet with columns [i:uint32, s:uint32, u:float32]"
+          },
+          "returns": "FacilityLocation instance with loaded data",
+          "raises": ["FileNotFoundError", "SchemaError", "ValidationError"],
+          "example": "```python\noracle = FacilityLocation.from_parquet('demand.parquet', 'utility.parquet')\n```"
+        },
+        "from_numpy": {
+          "signature": "FacilityLocation.from_numpy(demand_weights: np.ndarray, utility_matrix: np.ndarray) -> FacilityLocation",
+          "parameters": {
+            "demand_weights": "1D NumPy array of shape (n_demands,), dtype=float32",
+            "utility_matrix": "2D NumPy array of shape (n_demands, n_candidates), dtype=float32, can be sparse"
+          },
+          "zero_copy": true,
+          "description": "Create from NumPy arrays via Arrow FFI (zero-copy)",
+          "example": "```python\nimport numpy as np\nweights = np.random.rand(100).astype(np.float32)\nutilities = np.random.rand(100, 50).astype(np.float32)\noracle = FacilityLocation.from_numpy(weights, utilities)\n```"
+        }
+      },
+      "properties": {
+        "universe_size": {
+          "type": "int",
+          "description": "Number of candidate elements"
+        },
+        "n_demands": {
+          "type": "int",
+          "description": "Number of demand points"
+        }
+      },
+      "thread_safety": "All methods release GIL for true parallelism"
+    },
+
+    "LogDeterminant": {
+      "description": "Diversity via log-determinant of kernel matrix",
+      "constructor": {
+        "from_kernel": {
+          "signature": "LogDeterminant.from_kernel(kernel: np.ndarray, epsilon: float = 1e-6) -> LogDeterminant",
+          "parameters": {
+            "kernel": "2D symmetric positive semidefinite matrix, shape (n, n), dtype=float64",
+            "epsilon": "Regularization parameter (default 1e-6)"
+          },
+          "validation": [
+            "Checks symmetry (||K - K^T|| < 1e-9)",
+            "Checks positive semidefiniteness (min eigenvalue >= -epsilon)",
+            "Forces dtype=float64 (f32 fails for Cholesky)"
+          ],
+          "example": "```python\nimport numpy as np\nK = np.random.rand(100, 100)\nK = (K + K.T) / 2  # Symmetrize\nK += 0.1 * np.eye(100)  # Ensure PSD\noracle = LogDeterminant.from_kernel(K, epsilon=1e-6)\n```"
+        }
+      },
+      "special_behavior": {
+        "graceful_degradation": "After 5 consecutive numerical failures, automatically switches to facility-location-only mode (logs warning to stderr)",
+        "refactorization": "On NaN detection, triggers full Cholesky recomputation automatically"
+      }
+    },
+
+    "CardinalityConstraint": {
+      "description": "Simple cardinality constraint |S| ≤ k",
+      "constructor": {
+        "signature": "__init__(k: int)",
+        "parameters": {
+          "k": "Maximum number of elements to select"
+        },
+        "validation": "k > 0",
+        "example": "```python\nconstraint = CardinalityConstraint(k=250)\n```"
+      }
+    },
+
+    "KnapsackConstraint": {
+      "description": "Budget constraint with cost function",
+      "constructor": {
+        "signature": "__init__(budget: float, costs: Union[np.ndarray, Callable[[int], float]], mode: str = 'practical')",
+        "parameters": {
+          "budget": "Total budget B",
+          "costs": "Either NumPy array of costs or callable cost function",
+          "mode": "'practical' (fast heuristic) or 'theoretical' ((1-1/e) guarantee)"
+        },
+        "validation": ["budget > 0", "All costs non-negative"],
+        "example": "```python\n# Array-based costs\ncosts = np.array([1.0, 2.0, 1.5, ...])\nconstraint = KnapsackConstraint(budget=100.0, costs=costs)\n\n# Callable cost function\ndef cost_fn(item_id: int) -> float:\n    return database.lookup_cost(item_id)\nconstraint = KnapsackConstraint(budget=100.0, costs=cost_fn, mode='theoretical')\n```"
+      },
+      "modes": {
+        "practical": "Fast heuristic (enumerate top-3 + cost-benefit greedy), no approximation guarantee",
+        "theoretical": "Continuous Greedy with (1-1/e) guarantee (Sviridenko 2004), much slower"
+      }
+    },
+
+    "PartitionConstraint": {
+      "description": "Per-category capacity limits",
+      "constructor": {
+        "signature": "__init__(partition_fn: Callable[[int], int], capacities: List[int])",
+        "parameters": {
+          "partition_fn": "Maps ItemId → partition index",
+          "capacities": "List of per-partition capacity limits"
+        },
+        "example": "```python\n# 3 categories with capacities [10, 15, 20]\ndef partition_fn(item_id: int) -> int:\n    return item_id % 3  # Simple modulo partitioning\nconstraint = PartitionConstraint(partition_fn, capacities=[10, 15, 20])\n```"
+      }
+    }
+  },
+
+  "functions": {
+    "solve": {
+      "signature": "solve(oracle: Oracle, constraint: Constraint, *, algorithm: str = 'lazy_greedy', seed: int = 42, deterministic: bool = True, timeout_seconds: Optional[float] = None) -> Selection",
+      "parameters": {
+        "oracle": "Objective function (FacilityLocation, LogDeterminant, etc.)",
+        "constraint": "Feasibility constraint (CardinalityConstraint, KnapsackConstraint, etc.)",
+        "algorithm": "Algorithm name: 'lazy_greedy', 'stochastic', 'continuous'",
+        "seed": "Master RNG seed for reproducibility",
+        "deterministic": "Enable fixed-order parallel reduction (~10% overhead)",
+        "timeout_seconds": "Optional wall-clock timeout (returns best solution)"
+      },
+      "returns": {
+        "type": "Selection",
+        "fields": {
+          "items": "List[int] - Selected element IDs",
+          "objective": "float - Final objective value f(S)",
+          "used_budget": "float - For knapsack (0.0 for cardinality)",
+          "iterations": "int - Number of iterations performed",
+          "elapsed_seconds": "float - Wall-clock time",
+          "termination_reason": "str - 'cardinality', 'stagnation', 'timeout', etc."
+        }
+      },
+      "gil_release": {
+        "enabled": true,
+        "description": "Releases GIL during entire optimization, enabling true parallelism",
+        "pattern": "Python::allow_threads() wrapper around Rust solve()"
+      },
+      "example": "```python\nimport submoda\n\noracle = submoda.FacilityLocation.from_parquet('demand.parquet', 'utility.parquet')\nconstraint = submoda.CardinalityConstraint(k=250)\n\nselection = submoda.solve(\n    oracle,\n    constraint,\n    algorithm='lazy_greedy',\n    seed=42,\n    deterministic=True,\n    timeout_seconds=600.0\n)\n\nprint(f\"Selected {len(selection.items)} items\")\nprint(f\"Objective: {selection.objective:.2f}\")\nprint(f\"Took {selection.elapsed_seconds:.1f}s\")\n```"
+    },
+
+    "solve_with_trace": {
+      "signature": "solve_with_trace(oracle: Oracle, constraint: Constraint, **kwargs) -> Tuple[Selection, pd.DataFrame]",
+      "description": "Same as solve() but returns iteration trace as pandas DataFrame",
+      "returns": {
+        "selection": "Selection object",
+        "trace": "pandas.DataFrame with columns [iteration, selected_element, marginal_gain, objective_value, timestamp_ms]"
+      },
+      "example": "```python\nselection, trace = submoda.solve_with_trace(oracle, constraint, algorithm='lazy_greedy')\n\n# Analyze trace\nimport matplotlib.pyplot as plt\nplt.plot(trace['iteration'], trace['objective_value'])\nplt.xlabel('Iteration')\nplt.ylabel('Objective Value')\nplt.title('Optimization Progress')\nplt.show()\n```"
+    }
+  },
+
+  "data_exchange": {
+    "zero_copy_mechanism": {
+      "technology": "Apache Arrow C Data Interface via pyo3-arrow",
+      "supported_formats": ["NumPy arrays", "pandas DataFrames", "pyarrow Tables"],
+      "direction": "Bidirectional (Python → Rust and Rust → Python)",
+      "performance": "No serialization overhead, shares memory buffers"
+    },
+
+    "numpy_integration": {
+      "input": {
+        "description": "NumPy arrays automatically converted via Arrow FFI",
+        "constraints": ["Must be contiguous (C or F order)", "Supported dtypes: float32, float64, uint32, uint64"],
+        "example": "```python\nutilities = np.random.rand(1000, 500).astype(np.float32)\noracle = FacilityLocation.from_numpy(weights, utilities)  # Zero-copy\n```"
+      },
+      "output": {
+        "description": "Rust arrays returned as NumPy views (read-only)",
+        "immutability": "Returned arrays are immutable (Arrow data is immutable)",
+        "example": "```python\nselection_array = np.array(selection.items)  # Copy to mutable array if needed\n```"
+      }
+    },
+
+    "pandas_integration": {
+      "input": {
+        "description": "DataFrames converted via Arrow Table",
+        "example": "```python\nimport pandas as pd\ndf_demand = pd.read_parquet('demand.parquet')\ndf_utility = pd.read_parquet('utility.parquet')\noracle = FacilityLocation.from_dataframes(df_demand, df_utility)\n```"
+      },
+      "output": {
+        "description": "Trace returned as DataFrame with proper dtypes",
+        "example": "```python\nselection, trace_df = solve_with_trace(oracle, constraint)\ntrace_df.to_csv('optimization_trace.csv', index=False)\n```"
+      }
+    }
+  },
+
+  "type_stubs": {
+    "location": "python/submoda/_core.pyi",
+    "purpose": "IDE autocomplete and type checking (mypy, pyright)",
+    "example": "```python\n# Type hints enable IDE autocomplete\nfrom submoda import FacilityLocation, CardinalityConstraint, solve\nimport numpy as np\n\noracle: FacilityLocation = FacilityLocation.from_numpy(\n    weights=np.array([1.0, 2.0, 3.0], dtype=np.float32),\n    utilities=np.random.rand(3, 10).astype(np.float32)\n)\nconstraint: CardinalityConstraint = CardinalityConstraint(k=5)\nselection: Selection = solve(oracle, constraint)\n```",
+    "py_typed_marker": "python/submoda/py.typed ensures package is recognized as typed"
+  },
+
+  "error_handling": {
+    "rust_to_python": {
+      "mechanism": "anyhow errors automatically converted to RuntimeError",
+      "context_chain": "Full error context preserved in exception message",
+      "example": "```python\ntry:\n    oracle = FacilityLocation.from_parquet('missing.parquet', 'utility.parquet')\nexcept RuntimeError as e:\n    print(f\"Error: {e}\")  # Full context chain from Rust\n    # Output: \"Failed to read file: missing.parquet: No such file or directory\"\n```"
+    },
+    "validation_errors": {
+      "ValueError": "Invalid parameters (e.g., epsilon <= 0, k <= 0)",
+      "SchemaError": "Parquet schema mismatch",
+      "ValidationError": "Data validation failed (NaN, Inf, negative values)"
+    }
+  },
+
+  "performance": {
+    "gil_release": {
+      "enabled": "All long-running operations (solve, from_parquet, from_numpy with large arrays)",
+      "benefit": "True parallelism - Python can execute other threads while Rust optimizes",
+      "example_speedup": "4x for parallel workloads compared to GIL-held implementations"
+    },
+
+    "zero_copy_overhead": {
+      "arrow_ffi_conversion": "< 1μs for array metadata copy",
+      "vs_serialization": "1000x+ faster than pickle/JSON for large arrays",
+      "memory": "Shared buffers, no duplication"
+    },
+
+    "typical_runtimes": {
+      "small_problem": "n=1000, k=50: ~0.1s",
+      "medium_problem": "n=100000, k=100: ~5s",
+      "large_problem": "n=1000000, k=250: ~5min (with 32 cores)"
+    }
+  },
+
+  "testing": {
+    "pytest_integration": {
+      "location": "tests/test_*.py",
+      "example": "```python\nimport pytest\nimport numpy as np\nfrom submoda import FacilityLocation, CardinalityConstraint, solve\n\ndef test_determinism():\n    oracle = FacilityLocation.from_numpy(\n        weights=np.ones(10, dtype=np.float32),\n        utilities=np.random.rand(10, 20).astype(np.float32)\n    )\n    constraint = CardinalityConstraint(k=5)\n    \n    # Run twice with same seed\n    sel1 = solve(oracle, constraint, seed=42, deterministic=True)\n    sel2 = solve(oracle, constraint, seed=42, deterministic=True)\n    \n    assert sel1.items == sel2.items\n    assert abs(sel1.objective - sel2.objective) < 1e-6\n```"
+    },
+    "property_testing": {
+      "library": "hypothesis",
+      "example": "```python\nfrom hypothesis import given, strategies as st\nimport hypothesis.extra.numpy as npst\n\n@given(\n    utilities=npst.arrays(dtype=np.float32, shape=(100, 50), elements=st.floats(0, 1)),\n    k=st.integers(min_value=1, max_value=50)\n)\ndef test_monotonicity(utilities, k):\n    weights = np.ones(100, dtype=np.float32)\n    oracle = FacilityLocation.from_numpy(weights, utilities)\n    constraint = CardinalityConstraint(k=k)\n    selection = solve(oracle, constraint)\n    assert len(selection.items) <= k\n    assert selection.objective >= 0\n```"
+    }
+  },
+
+  "examples": {
+    "minimal": {
+      "description": "Quick start with small dataset",
+      "code": "```python\nimport numpy as np\nfrom submoda import FacilityLocation, CardinalityConstraint, solve\n\n# Create small problem: 100 demands, 50 candidates, select 10\nweights = np.random.rand(100).astype(np.float32)\nutilities = np.random.rand(100, 50).astype(np.float32)\n\noracle = FacilityLocation.from_numpy(weights, utilities)\nconstraint = CardinalityConstraint(k=10)\n\nselection = solve(oracle, constraint, algorithm='lazy_greedy', seed=42)\nprint(f\"Selected: {selection.items}\")\nprint(f\"Objective: {selection.objective:.2f}\")\n```"
+    },
+
+    "parquet_workflow": {
+      "description": "Production workflow with large Parquet files",
+      "code": "```python\nfrom submoda import FacilityLocation, CardinalityConstraint, solve\nimport time\n\n# Load data from Parquet (millions of rows)\nprint(\"Loading data...\")\nstart = time.time()\noracle = FacilityLocation.from_parquet(\n    'demand_1M.parquet',\n    'utility_sparse_100M.parquet'\n)\nprint(f\"Loaded in {time.time() - start:.1f}s\")\n\n# Optimize with timeout\nconstraint = CardinalityConstraint(k=250)\nselection = solve(\n    oracle,\n    constraint,\n    algorithm='lazy_greedy',\n    seed=42,\n    deterministic=True,\n    timeout_seconds=600.0\n)\n\nprint(f\"Selected {len(selection.items)} items in {selection.elapsed_seconds:.1f}s\")\nprint(f\"Objective: {selection.objective:.2f}\")\nprint(f\"Termination: {selection.termination_reason}\")\n```"
+    },
+
+    "knapsack_budget": {
+      "description": "Budget-constrained optimization",
+      "code": "```python\nfrom submoda import FacilityLocation, KnapsackConstraint, solve\nimport numpy as np\n\noracle = FacilityLocation.from_parquet('demand.parquet', 'utility.parquet')\n\n# Costs array or callable\ncosts = np.random.rand(oracle.universe_size) * 10.0\n\n# Practical mode (fast)\nconstraint = KnapsackConstraint(budget=100.0, costs=costs, mode='practical')\nselection = solve(oracle, constraint, algorithm='lazy_greedy')\n\nprint(f\"Selected {len(selection.items)} items\")\nprint(f\"Used budget: {selection.used_budget:.2f} / 100.0\")\nprint(f\"Objective: {selection.objective:.2f}\")\n```"
+    }
+  },
+
+  "distribution": {
+    "pypi": {
+      "package_name": "submoda",
+      "wheel_platforms": ["manylinux_2_28_x86_64", "macosx_11_0_arm64", "win_amd64"],
+      "python_versions": ["3.10", "3.11", "3.12"],
+      "dependencies": ["numpy>=1.20"]
+    },
+    "source_build": {
+      "requires": ["Rust 1.70+", "maturin 1.4+"],
+      "command": "pip install submoda --no-binary submoda"
+    }
+  }
+}

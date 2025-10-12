@@ -1,0 +1,352 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "submod-solver API Contract",
+  "description": "Solver entry points and algorithm implementations",
+  "version": "0.1.0",
+  "module": "submod_solver",
+
+  "public_functions": {
+    "solve": {
+      "signature": "pub fn solve<O, C>(oracle: &mut O, constraint: &mut C, config: SolverConfig) -> Result<Selection, SolverError>",
+      "description": "Main entry point for submodular optimization",
+      "generics": {
+        "O": "SubmodularOracle",
+        "C": "Constraint"
+      },
+      "parameters": {
+        "oracle": {
+          "type": "&mut O",
+          "description": "Submodular function oracle (mutable for commit())",
+          "lifetime": "Borrowed mutably for duration of optimization"
+        },
+        "constraint": {
+          "type": "&mut C",
+          "description": "Feasibility constraint (mutable for commit())",
+          "lifetime": "Borrowed mutably for duration of optimization"
+        },
+        "config": {
+          "type": "SolverConfig",
+          "description": "Algorithm, termination, determinism configuration",
+          "owned": true
+        }
+      },
+      "returns": {
+        "Ok": "Selection with items, objective, trace",
+        "Err": "SolverError with context chain"
+      },
+      "behavior": {
+        "dispatch": "Matches config.strategy to select algorithm implementation",
+        "determinism": "Applies config.determinism for reproducibility",
+        "termination": "Respects config.termination conditions",
+        "metrics": "Increments Prometheus counters/histograms if enabled"
+      },
+      "example": "```rust\nlet oracle = FacilityLocation::from_parquet(\"demands.parquet\", \"utilities.parquet\")?;\nlet constraint = CardinalityConstraint::new(250);\nlet config = SolverConfig::lazy_greedy().with_seed(42);\nlet selection = solve(&mut oracle, &mut constraint, config)?;\n```"
+    }
+  },
+
+  "types": {
+    "SolverConfig": {
+      "type": "struct",
+      "description": "Complete solver configuration",
+      "fields": {
+        "strategy": {
+          "type": "Strategy",
+          "description": "Algorithm variant (LazyGreedy, StochasticGreedy, etc.)",
+          "required": true
+        },
+        "termination": {
+          "type": "TerminationConfig",
+          "description": "Stopping conditions",
+          "required": true
+        },
+        "determinism": {
+          "type": "Determinism",
+          "description": "Reproducibility settings",
+          "default": "Determinism::default()"
+        },
+        "metrics": {
+          "type": "MetricsConfig",
+          "description": "Prometheus instrumentation",
+          "default": "MetricsConfig::disabled()"
+        }
+      },
+      "constructors": {
+        "lazy_greedy": {
+          "signature": "pub fn lazy_greedy() -> Self",
+          "description": "Default LazyGreedy with epsilon=0.0"
+        },
+        "stochastic": {
+          "signature": "pub fn stochastic(epsilon: f64) -> Self",
+          "description": "StochasticGreedy with custom epsilon"
+        },
+        "continuous": {
+          "signature": "pub fn continuous(steps: usize, grad_samples: usize) -> Self",
+          "description": "ContinuousGreedy for matroid constraints"
+        }
+      },
+      "builder_methods": {
+        "with_seed": {
+          "signature": "pub fn with_seed(mut self, seed: u64) -> Self",
+          "description": "Set master RNG seed"
+        },
+        "with_timeout": {
+          "signature": "pub fn with_timeout(mut self, duration: Duration) -> Self",
+          "description": "Set wall-clock timeout"
+        },
+        "with_metrics": {
+          "signature": "pub fn with_metrics(mut self, enabled: bool) -> Self",
+          "description": "Enable/disable Prometheus metrics"
+        }
+      }
+    },
+
+    "TerminationConfig": {
+      "type": "struct",
+      "description": "Stopping conditions for optimization",
+      "fields": {
+        "max_iterations": {
+          "type": "usize",
+          "description": "Maximum number of selections (typically k for cardinality)",
+          "required": true
+        },
+        "ub_threshold": {
+          "type": "Option<f64>",
+          "description": "Stop if next upper bound < tau",
+          "default": "None"
+        },
+        "stagnation_window": {
+          "type": "usize",
+          "description": "Number of consecutive iterations for stagnation detection",
+          "default": 3
+        },
+        "stagnation_epsilon": {
+          "type": "f64",
+          "description": "Relative tolerance for stagnation",
+          "default": "1e-6"
+        },
+        "timeout": {
+          "type": "Option<Duration>",
+          "description": "Wall-clock time limit",
+          "default": "None"
+        }
+      },
+      "termination_reasons": [
+        "cardinality_reached: |S| = max_iterations",
+        "upper_bound_threshold: next_ub < ub_threshold",
+        "stagnation: marginal gain < epsilon for stagnation_window iterations",
+        "timeout: wall_clock > timeout"
+      ],
+      "logged_in": "IterationTrace and final Selection"
+    },
+
+    "SolverError": {
+      "type": "enum",
+      "description": "Solver error types with context",
+      "variants": {
+        "OracleError": {
+          "fields": {
+            "context": "String",
+            "source": "Box<dyn std::error::Error>"
+          },
+          "description": "Oracle evaluation failed"
+        },
+        "ConstraintError": {
+          "fields": {
+            "context": "String"
+          },
+          "description": "Constraint violation or infeasibility"
+        },
+        "NumericalError": {
+          "fields": {
+            "context": "String",
+            "value": "f64"
+          },
+          "description": "NaN or Infinity detected"
+        },
+        "ConfigurationError": {
+          "fields": {
+            "message": "String"
+          },
+          "description": "Invalid configuration (e.g., epsilon <= 0)"
+        },
+        "TimeoutError": {
+          "fields": {
+            "iterations_completed": "usize",
+            "elapsed": "Duration"
+          },
+          "description": "Wall-clock timeout (returns best solution in Result::Ok)"
+        }
+      },
+      "error_propagation": "Uses anyhow for context chains, converts to SolverError with From<anyhow::Error>"
+    }
+  },
+
+  "algorithms": {
+    "LazyGreedy": {
+      "implementation": "submod_solver::lazy_greedy",
+      "data_structures": {
+        "heap": "BinaryHeap<HeapEntry>",
+        "epoch": "u64 (invalidates stale bounds)"
+      },
+      "steps": [
+        "1. Initialize heap with upper_bound(e) for all e ∈ V",
+        "2. Loop: pop top candidate from heap",
+        "3. If entry.epoch < current_epoch: discard (stale)",
+        "4. Evaluate actual gain: delta = oracle.gain(&view, e)",
+        "5. If delta + epsilon >= next_heap_top: commit, break",
+        "6. Else: re-insert with updated bound and current_epoch",
+        "7. After commit: current_epoch += 1, constraint.commit(e), oracle.commit(e)"
+      ],
+      "complexity": {
+        "time": "O(k × m log n) expected, where m = evaluations per iteration (~5-10% of n)",
+        "space": "O(n) for heap + O(|V|/8) for SelectionView"
+      },
+      "guarantees": {
+        "approximation": "(1-1/e) ≈ 0.632 for monotone submodular + cardinality",
+        "determinism": "Identical results across runs with same seed (if fixed_order=true)"
+      }
+    },
+
+    "StochasticGreedy": {
+      "implementation": "submod_solver::stochastic",
+      "steps": [
+        "1. For iteration t = 1 to k:",
+        "2. Sample R_t ⊆ (V \\ S) with |R_t| = ⌈(n/k) log(1/ε)⌉",
+        "3. Evaluate all candidates in R_t (parallelizable)",
+        "4. Select e_t = argmax_{e ∈ R_t} Δ(e | S_{t-1})",
+        "5. Commit: S_t = S_{t-1} ∪ {e_t}"
+      ],
+      "sampling": {
+        "algorithm": "Reservoir sampling with seeded RNG",
+        "determinism": "iteration_seed = algo_seed + t"
+      },
+      "complexity": {
+        "time": "O(n log(1/ε)) total evaluations",
+        "vs_standard": "~100x fewer evaluations than standard greedy for ε=0.1"
+      },
+      "guarantees": {
+        "approximation": "(1-1/e - ε) with high probability",
+        "determinism": "Identical samples for same seed"
+      }
+    },
+
+    "ContinuousGreedy": {
+      "implementation": "submod_solver::continuous",
+      "phases": {
+        "relaxation": {
+          "description": "Optimize multilinear extension F(x) on [0,1]^n",
+          "steps": [
+            "1. Initialize x = 0 vector",
+            "2. For t = 0 to T-1:",
+            "3. Estimate gradient: ĝ_i = E_{R ~ x}[f(R ∪ {i}) - f(R)]",
+            "4. Find maximum weight BASE: B_t = argmax_{B is base} Σ_{i ∈ B} ĝ_i",
+            "5. Update: x_{i} ← min(x_i + 1/T, 1) for i ∈ B_t"
+          ],
+          "critical": "Must select BASE (maximal independent set), not just independent set"
+        },
+        "gradient_estimation": {
+          "description": "View-based sampling (no oracle mutation)",
+          "algorithm": "For G samples: build temporary SelectionView from x, evaluate all candidates",
+          "variance_reduction": "Optional common random numbers (same sample sets for all candidates)"
+        },
+        "rounding": {
+          "Pipage": {
+            "description": "Deterministic rounding for partition matroids",
+            "algorithm": "Pairwise adjustment within partitions until all x_i ∈ {0,1}",
+            "guarantee": "Maintains E[f(x)] non-decreasing"
+          },
+          "Swap": {
+            "description": "Probabilistic rounding for general matroids",
+            "algorithm": "Base decomposition + stochastic merge",
+            "guarantee": "Expected (1-1/e) approximation"
+          }
+        }
+      },
+      "complexity": {
+        "time": "O(T × G × n) for gradient estimation + O(n log n × T) for base computation",
+        "typical": "T=100, G=500 → 50,000n evaluations"
+      },
+      "guarantees": {
+        "approximation": "(1-1/e) for matroid constraints",
+        "determinism": "Seeded RNG for gradient sampling and swap rounding"
+      }
+    }
+  },
+
+  "parallelization": {
+    "evaluation_phase": {
+      "pattern": "candidates.par_iter().map(|&e| oracle.gain(&view, e)).collect()",
+      "thread_safety": "Safe because gain(&self) is immutable",
+      "scalability": "Near-linear up to 64 cores for large candidate sets"
+    },
+
+    "reduction_phase": {
+      "deterministic": {
+        "enabled": "config.determinism.fixed_order == true",
+        "pattern": "Collect results, sort by ItemId, sequential reduction",
+        "overhead": "~8-10%"
+      },
+      "non_deterministic": {
+        "enabled": "config.determinism.fixed_order == false",
+        "pattern": "Direct Rayon par_iter().sum()",
+        "overhead": "0%"
+      }
+    }
+  },
+
+  "metrics_integration": {
+    "counters": [
+      "gain_eval_total{algorithm, constraint_type}",
+      "commit_total{algorithm}",
+      "heap_pop_total (Lazy Greedy only)"
+    ],
+    "gauges": [
+      "objective_value",
+      "selection_size",
+      "upper_bound_max (Lazy Greedy only)"
+    ],
+    "histograms": [
+      "gain_compute_seconds{algorithm}",
+      "iteration_seconds{algorithm}"
+    ],
+    "overhead": "<0.1% for typical optimization runtimes (seconds to minutes)"
+  },
+
+  "error_handling": {
+    "validation": {
+      "pre_solve": [
+        "Check epsilon > 0",
+        "Check max_iterations > 0",
+        "Check universe_size > 0",
+        "Check constraint initial feasibility"
+      ],
+      "during_solve": [
+        "Detect NaN/Inf in marginal gains",
+        "Detect constraint violations",
+        "Monitor timeout"
+      ]
+    },
+    "recovery": {
+      "NaN_detection": "Immediate error with iteration context",
+      "timeout": "Return best solution found (Ok variant)",
+      "heap_exhaustion": "Terminate with stagnation reason"
+    }
+  },
+
+  "testing": {
+    "unit_tests": [
+      "test_determinism_across_thread_counts",
+      "test_approximation_ratio_vs_brute_force",
+      "test_epoch_stale_bound_elimination",
+      "test_timeout_returns_partial_solution"
+    ],
+    "property_tests": [
+      "proptest: submodularity preserved after selections",
+      "proptest: constraint feasibility maintained"
+    ],
+    "benchmarks": [
+      "criterion: 1M×1M problem, k=250, lazy_greedy",
+      "criterion: deterministic vs non-deterministic reduction"
+    ]
+  }
+}

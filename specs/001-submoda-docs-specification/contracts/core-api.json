@@ -1,0 +1,376 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "submod-core API Contract",
+  "description": "Core traits, types, and configuration for submodular optimization",
+  "version": "0.1.0",
+  "module": "submod_core",
+
+  "types": {
+    "ItemId": {
+      "type": "alias",
+      "base": "u32",
+      "description": "Element identifier in ground set V",
+      "constraints": {
+        "range": "0 to 2^32-1",
+        "density": "Must be dense and zero-indexed",
+        "usage": "Used as array indices for O(1) operations"
+      },
+      "alternatives": {
+        "u64": "For extreme scale (>4.3B candidates)"
+      }
+    },
+
+    "Weight": {
+      "type": "alias",
+      "base": "f32 | f64",
+      "description": "Numerical values for objectives, utilities, costs",
+      "selection_rules": {
+        "f32": "Default for Facility Location, Saturating Coverage",
+        "f64": "Mandatory for Log-Determinant, Continuous Greedy gradients"
+      },
+      "validation": {
+        "no_nan": true,
+        "no_infinity": true,
+        "non_negative": "Context-dependent"
+      }
+    },
+
+    "SelectionView": {
+      "type": "struct",
+      "description": "Immutable snapshot of current selection for thread-safe queries",
+      "fields": {
+        "in_set": {
+          "type": "fixedbitset::FixedBitSet",
+          "description": "Bitset for O(1) membership testing"
+        },
+        "size": {
+          "type": "usize",
+          "description": "Cardinality |S|"
+        }
+      },
+      "properties": {
+        "memory": "|V|/8 bytes + 8 bytes",
+        "thread_safe": true,
+        "clone_cost": "O(|V|/8) bytes copy"
+      },
+      "methods": {
+        "new": {
+          "signature": "fn new(universe_size: usize) -> Self",
+          "description": "Create empty selection view"
+        },
+        "contains": {
+          "signature": "fn contains(&self, e: ItemId) -> bool",
+          "complexity": "O(1)"
+        },
+        "clone_with_element": {
+          "signature": "fn clone_with_element(&self, e: ItemId) -> Self",
+          "description": "Clone view with additional element (non-mutating)"
+        }
+      }
+    },
+
+    "Selection": {
+      "type": "struct",
+      "description": "Final materialized solution with audit trail",
+      "fields": {
+        "items": {
+          "type": "Vec<ItemId>",
+          "description": "Selected elements (no duplicates)"
+        },
+        "objective": {
+          "type": "f64",
+          "description": "Final objective value f(S)"
+        },
+        "used_budget": {
+          "type": "f64",
+          "description": "For knapsack constraints"
+        },
+        "counts_by_part": {
+          "type": "Vec<usize>",
+          "description": "For partition matroid constraints"
+        },
+        "trace": {
+          "type": "Vec<IterationTrace>",
+          "description": "Full iteration history"
+        }
+      },
+      "invariants": [
+        "items.len() == last SelectionView.size",
+        "No duplicate ItemIds",
+        "All ItemIds < universe_size",
+        "objective is finite and non-NaN"
+      ]
+    }
+  },
+
+  "traits": {
+    "SubmodularOracle": {
+      "description": "Abstract interface for submodular function evaluation",
+      "bounds": ["Send", "Sync"],
+      "thread_safety": "gain() and upper_bound() are thread-safe (&self), commit() is sequential (&mut self)",
+
+      "required_methods": {
+        "universe_size": {
+          "signature": "fn universe_size(&self) -> usize",
+          "description": "Number of elements in ground set V"
+        },
+
+        "gain": {
+          "signature": "fn gain(&self, view: &SelectionView, e: ItemId) -> f64",
+          "description": "Compute marginal gain Δ(e|S) = f(S ∪ {e}) - f(S)",
+          "thread_safety": "READ-ONLY, THREAD-SAFE",
+          "parameters": {
+            "view": "Immutable snapshot of current selection",
+            "e": "Candidate element to evaluate"
+          },
+          "returns": "Marginal gain (non-negative for monotone functions)",
+          "complexity": "Objective-dependent (O(nnz(e)) for Facility Location)"
+        },
+
+        "commit": {
+          "signature": "fn commit(&mut self, e: ItemId)",
+          "description": "Update internal state after element selection",
+          "thread_safety": "WRITE, NOT THREAD-SAFE - must be called sequentially",
+          "parameters": {
+            "e": "Element being committed to solution"
+          },
+          "effects": [
+            "Updates mutable oracle state (e.g., best_u for Facility Location)",
+            "Must be called after selection decision",
+            "Never called during parallel evaluation"
+          ]
+        },
+
+        "upper_bound": {
+          "signature": "fn upper_bound(&self, e: ItemId) -> f64",
+          "description": "Upper bound for Lazy Greedy optimization",
+          "thread_safety": "READ-ONLY, THREAD-SAFE",
+          "returns": "Most recently evaluated marginal gain Δ(e|S')",
+          "initialization": "f64::INFINITY (lazy init on first heap pop)",
+          "update_rule": "After evaluation, upper_bound(e) ← most recent Δ(e|S)"
+        }
+      },
+
+      "optional_methods": {
+        "fork": {
+          "signature": "fn fork(&self) -> Box<dyn SubmodularOracle>",
+          "description": "Create lightweight clone for parallel workers",
+          "pattern": "Shares immutable data (Arc), clones mutable caches",
+          "default": "unimplemented!() - not required",
+          "use_case": "Advanced parallelism with thread-local caches"
+        },
+
+        "prefetch": {
+          "signature": "fn prefetch(&self, e: ItemId)",
+          "description": "Hint for cache prefetching",
+          "default": "no-op",
+          "use_case": "Memory-bound objectives"
+        },
+
+        "gain_batch": {
+          "signature": "fn gain_batch(&self, view: &SelectionView, candidates: &[ItemId]) -> Vec<f64>",
+          "description": "Batch evaluation for SIMD/cache efficiency",
+          "default": "Sequential gain() calls",
+          "performance": "2-4x speedup with SIMD for Facility Location"
+        }
+      },
+
+      "implementations": [
+        "FacilityLocation",
+        "SaturatingCoverage",
+        "LogDeterminant",
+        "DiversityAwareFacilityLocation"
+      ]
+    },
+
+    "Constraint": {
+      "description": "Feasibility checking and state management for constraints",
+
+      "required_methods": {
+        "can_add": {
+          "signature": "fn can_add(&self, view: &SelectionView, e: ItemId) -> bool",
+          "description": "Check if element e can be added to current selection",
+          "thread_safety": "READ-ONLY (typically)",
+          "returns": "true if adding e maintains feasibility"
+        },
+
+        "commit": {
+          "signature": "fn commit(&mut self, e: ItemId)",
+          "description": "Update constraint state after element selection",
+          "thread_safety": "WRITE, NOT THREAD-SAFE"
+        },
+
+        "reset": {
+          "signature": "fn reset(&mut self)",
+          "description": "Reset constraint to initial state"
+        }
+      },
+
+      "implementations": [
+        "CardinalityConstraint",
+        "KnapsackConstraint",
+        "PartitionMatroid",
+        "GraphicMatroid"
+      ]
+    },
+
+    "Matroid": {
+      "description": "Matroid independence and max-weight base computation",
+      "extends": "Constraint",
+
+      "required_methods": {
+        "rank": {
+          "signature": "fn rank(&self) -> usize",
+          "description": "Rank of matroid (size of maximum independent set)"
+        },
+
+        "max_weight_base": {
+          "signature": "fn max_weight_base(&self, weights: &[f64]) -> Vec<ItemId>",
+          "description": "Find maximum weight base B maximizing Σ_{i ∈ B} weights[i]",
+          "algorithm": "Greedy for matroids (sort by weight, add if independent)",
+          "determinism": "Tie-break by ItemId for reproducibility",
+          "complexity": "O(n log n) for sorting + O(n × independence_test)"
+        }
+      },
+
+      "implementations": [
+        "PartitionMatroid",
+        "GraphicMatroid"
+      ]
+    }
+  },
+
+  "enums": {
+    "Strategy": {
+      "description": "Algorithm selection and configuration",
+      "variants": {
+        "LazyGreedy": {
+          "fields": {
+            "epsilon": {
+              "type": "f64",
+              "description": "ε-approximation tolerance (0.0 = exact)",
+              "default": 0.0
+            }
+          },
+          "approximation": "(1-1/e) ≈ 0.632 for monotone + cardinality"
+        },
+
+        "StochasticGreedy": {
+          "fields": {
+            "epsilon": {
+              "type": "f64",
+              "description": "Approximation parameter",
+              "default": 0.1
+            },
+            "sample_factor": {
+              "type": "f64",
+              "description": "Sample size multiplier",
+              "default": 1.0
+            }
+          },
+          "approximation": "(1-1/e - ε) with high probability",
+          "complexity": "O(n log(1/ε))"
+        },
+
+        "ContinuousGreedy": {
+          "fields": {
+            "steps": {
+              "type": "usize",
+              "description": "Time discretization T",
+              "default": 100
+            },
+            "grad_samples": {
+              "type": "usize",
+              "description": "Gradient estimation samples G",
+              "default": 500
+            },
+            "rounding": {
+              "type": "RoundingMode",
+              "description": "Pipage (deterministic) or Swap (probabilistic)"
+            }
+          },
+          "approximation": "(1-1/e) for matroid constraints",
+          "complexity": "O(T × G × n)"
+        },
+
+        "SieveStreaming": {
+          "fields": {
+            "epsilon": {
+              "type": "f64"
+            },
+            "threshold_levels": {
+              "type": "usize"
+            }
+          },
+          "approximation": "(1/2 - ε)",
+          "use_case": "Single-pass streaming"
+        }
+      }
+    },
+
+    "Determinism": {
+      "description": "Reproducibility configuration",
+      "fields": {
+        "seed": {
+          "type": "u64",
+          "description": "Master RNG seed",
+          "default": 42
+        },
+        "fixed_order": {
+          "type": "bool",
+          "description": "Fix parallel reduction order",
+          "default": true,
+          "overhead": "~10% when enabled"
+        },
+        "tie_breaking": {
+          "type": "TieBreak",
+          "description": "Equal marginal gain resolution",
+          "default": "ById"
+        }
+      }
+    },
+
+    "TieBreak": {
+      "description": "Tie-breaking strategy for equal marginal gains",
+      "variants": {
+        "ById": "Prefer lower ItemId (deterministic, default)",
+        "ByUpperBound": "Prefer higher cached upper bound",
+        "Random": "Use seeded RNG (less deterministic)"
+      }
+    }
+  },
+
+  "patterns": {
+    "view_based_evaluation": {
+      "description": "Core pattern for thread-safe parallel queries",
+      "example": "oracle.gain(&view, candidate) never mutates oracle state",
+      "rationale": "Enables Rayon par_iter() over candidates with shared &oracle"
+    },
+
+    "sequential_commit": {
+      "description": "State updates only after selection decision",
+      "example": "After selecting best candidate, oracle.commit(best) + constraint.commit(best)",
+      "rationale": "Maintains invariants, prevents race conditions"
+    },
+
+    "fork_pattern": {
+      "description": "Lightweight cloning for advanced parallelism",
+      "structure": "Arc<immutable_data> + thread-local mutable caches",
+      "use_case": "Thread pools with per-worker oracle instances"
+    }
+  },
+
+  "performance": {
+    "SelectionView": {
+      "memory": "125KB for 1M candidates (bitset)",
+      "clone": "~1μs for 1M bitset copy",
+      "contains": "~2ns (single bit check)"
+    },
+
+    "parallel_evaluation": {
+      "overhead": "<1% for Rayon thread pool management",
+      "speedup": "6-8x on 8 cores for embarrassingly parallel workloads",
+      "scalability": "Near-linear up to 64 cores"
+    }
+  }
+}
