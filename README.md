@@ -27,12 +27,13 @@ mise run setup
 ### Tasks
 
 ```bash
-mise run test      # Run tests with nextest
-mise run check     # Quick compilation check
-mise run lint      # Run clippy linter
-mise run fmt       # Format code
-mise run watch     # Watch and auto-test
-mise run bench     # Run benchmarks
+mise run test         # Run tests with nextest
+mise run check        # Quick compilation check
+mise run lint         # Run clippy linter
+mise run fmt          # Format code
+mise run watch        # Watch and auto-test
+mise run bench        # Run benchmarks
+mise run pip-compile  # Compile Python dependencies
 ```
 
 ### Python Dependencies
