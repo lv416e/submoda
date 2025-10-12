@@ -29,7 +29,7 @@ run = "cargo bench --workspace"
 
 [tasks.watch]
 description = "Watch and rebuild on changes"
-run = "cargo watch -c -x 'nextest run --workspace'"
+run = "cargo watch -c -x 'check --workspace --all-targets' -x 'nextest run --workspace'"
 
 [tasks.fmt]
 description = "Format code"
@@ -46,7 +46,7 @@ run = "cargo check --workspace --all-targets"
 
 [tasks.pip-install]
 description = "Install Python development dependencies"
-run = "python -m pip install -r requirements-dev.txt"
+run = "python -m pip install --upgrade pip && python -m pip install -r requirements-dev.txt"
 sources = ["requirements-dev.txt"]
 
 [tasks.setup]
