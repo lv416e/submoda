@@ -1,0 +1,8 @@
+# Development dependencies for Submoda
+
+# PyO3 build tool for Rust-Python bindings
+maturin>=1.0.0
+
+# Data generation and analysis tools
+numpy>=1.24.0
+pandas>=2.0.0

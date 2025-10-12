@@ -10,7 +10,7 @@ cargo_binstall = true
 rust = "1.90.0"
 
 # Python for PyO3 bindings and data generation scripts
-python = { version = "3.12.12", pip-packages = ["maturin"] }
+python = "3.12.12"
 
 # Cargo tools managed by mise, installed with binstall
 # Pinned for reproducibility
@@ -37,15 +37,19 @@ run = "cargo fmt --all"
 [tasks.lint]
 description = "Run clippy linter"
 run = "cargo clippy --workspace --all-targets --no-deps -- -D warnings -W clippy::pedantic"
-deps = ["fmt"]
+depends = ["fmt"]
 
 [tasks.check]
 description = "Check the project for errors"
 run = "cargo check --workspace --all-targets"
 
+[tasks.pip-install]
+description = "Install Python development dependencies"
+run = "pip install -r requirements-dev.txt"
+
 [tasks.setup]
-description = "Setup development environment by installing tools"
-run = "mise install"
+description = "Setup development environment by installing tools and Python dependencies"
+run = "mise install && pip install -r requirements-dev.txt"
 
 [env]
 # Set default Rust flags for development
