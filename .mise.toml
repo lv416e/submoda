@@ -10,7 +10,8 @@ cargo_binstall = true
 rust = "1.90.0"
 
 # Python for PyO3 bindings and data generation scripts
-python = "3.12.12"
+# Using venv for dependency isolation
+python = { version = "3.12.12", venv = ".venv" }
 
 # Cargo tools managed by mise, installed with binstall
 # Pinned for reproducibility
@@ -45,7 +46,7 @@ run = "cargo check --workspace --all-targets"
 
 [tasks.pip-install]
 description = "Install Python development dependencies"
-run = "pip install -r requirements-dev.txt"
+run = "python -m pip install -r requirements-dev.txt"
 
 [tasks.setup]
 description = "Setup development environment by installing tools and Python dependencies"
