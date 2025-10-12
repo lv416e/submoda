@@ -47,6 +47,7 @@ run = "cargo check --workspace --all-targets"
 [tasks.pip-install]
 description = "Install Python development dependencies"
 run = "python -m pip install -r requirements-dev.txt"
+sources = ["requirements-dev.txt"]
 
 [tasks.setup]
 description = "Setup development environment by installing tools and Python dependencies"
