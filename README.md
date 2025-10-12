@@ -14,6 +14,36 @@ Large-scale subset selection with provable (1-1/e) approximation guarantee.
 
 Specification complete. Implementation in progress.
 
+## Development
+
+### Setup
+
+```bash
+# Set up the complete development environment
+mise run setup
+```
+
+### Tasks
+
+```bash
+mise run test         # Run tests with nextest
+mise run check        # Quick compilation check
+mise run lint         # Run clippy linter
+mise run fmt          # Format code
+mise run watch        # Watch and auto-test
+mise run bench        # Run benchmarks
+mise run pip-compile  # Compile Python dependencies
+```
+
+### Python Dependencies
+
+Python dependencies are managed with [pip-tools](https://github.com/jazzband/pip-tools) for full reproducibility:
+
+- Edit `requirements-dev.in` to add/update dependencies
+- Run `mise run pip-compile` to generate `requirements-dev.txt`
+- Run `mise run setup` to install the updated dependencies
+- Commit both files
+
 ## Docs
 
 [Complete Specification](docs/specification.md)
