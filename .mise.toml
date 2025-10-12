@@ -14,7 +14,7 @@ rust = "1.90.0"
 python = { version = "3.12.12", venv = ".venv" }
 
 # Python tools
-"pipx:pip-tools" = "latest"
+"pipx:pip-tools" = "7.5.1"
 
 # Cargo tools managed by mise, installed with binstall
 # Pinned for reproducibility
@@ -59,8 +59,8 @@ sources = ["requirements-dev.in"]
 outputs = ["requirements-dev.txt"]
 
 [tasks.setup]
-description = "Setup development environment by installing tools and Python dependencies"
-run = "mise run pip-install"
+description = "Install Python development dependencies"
+depends = ["pip-install"]
 
 [env]
 # Set default Rust flags for development

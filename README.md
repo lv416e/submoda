@@ -19,7 +19,8 @@ Specification complete. Implementation in progress.
 ### Setup
 
 ```bash
-# Install mise and setup environment
+# Install all tools and Python dependencies
+mise install
 mise run setup
 ```
 
