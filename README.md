@@ -19,8 +19,7 @@ Specification complete. Implementation in progress.
 ### Setup
 
 ```bash
-# Install all tools and Python dependencies
-mise install
+# Set up the complete development environment
 mise run setup
 ```
 
