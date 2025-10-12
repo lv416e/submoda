@@ -20,7 +20,6 @@ Specification complete. Implementation in progress.
 
 ```bash
 # Install mise and setup environment
-mise install
 mise run setup
 ```
 

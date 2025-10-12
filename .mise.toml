@@ -13,6 +13,9 @@ rust = "1.90.0"
 # Using venv for dependency isolation
 python = { version = "3.12.12", venv = ".venv" }
 
+# Python tools
+"pipx:pip-tools" = "latest"
+
 # Cargo tools managed by mise, installed with binstall
 # Pinned for reproducibility
 "cargo:cargo-edit" = "0.13.7"
@@ -51,13 +54,13 @@ sources = ["requirements-dev.txt"]
 
 [tasks.pip-compile]
 description = "Compile requirements-dev.in to requirements-dev.txt with pip-tools"
-run = "python -m pip install pip-tools && python -m piptools compile --generate-hashes requirements-dev.in -o requirements-dev.txt"
+run = "pip-compile --generate-hashes --output-file=requirements-dev.txt requirements-dev.in"
 sources = ["requirements-dev.in"]
 outputs = ["requirements-dev.txt"]
 
 [tasks.setup]
 description = "Setup development environment by installing tools and Python dependencies"
-run = "mise install && mise run pip-install"
+run = "mise run pip-install"
 
 [env]
 # Set default Rust flags for development
