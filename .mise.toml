@@ -28,7 +28,7 @@ run = "cargo bench --workspace"
 
 [tasks.watch]
 description = "Watch and rebuild on changes"
-run = "cargo watch -x 'check --workspace --all-targets' -x 'nextest run --workspace'"
+run = "cargo watch -s 'mise run check && mise run test'"
 
 [tasks.fmt]
 description = "Format code"
@@ -49,7 +49,7 @@ run = "pip install -r requirements-dev.txt"
 
 [tasks.setup]
 description = "Setup development environment by installing tools and Python dependencies"
-run = "mise install && pip install -r requirements-dev.txt"
+run = "mise install && mise run pip-install"
 
 [env]
 # Set default Rust flags for development
