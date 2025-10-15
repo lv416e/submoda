@@ -1,0 +1,28 @@
+[package]
+name = "submod-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+# Core data structures for efficient set operations
+fixedbitset = { workspace = true }
+
+# Serialization for configuration types
+serde = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+log = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
