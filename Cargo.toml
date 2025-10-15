@@ -52,8 +52,8 @@ axum = "0.7"
 tokio = { version = "1.0", features = ["full"] }
 
 # Python Bindings
-pyo3 = { version = "0.21", features = ["extension-module"] }
-numpy = "0.21"
+pyo3 = { version = "0.26", features = ["extension-module"] }
+numpy = "0.26"
 
 # Error Handling
 thiserror = "1.0"
