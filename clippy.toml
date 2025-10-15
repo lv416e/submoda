@@ -4,9 +4,6 @@
 # Cognitive complexity threshold for functions
 cognitive-complexity-threshold = 30
 
-# Cyclomatic complexity threshold
-cyclomatic-complexity-threshold = 15
-
 # Type complexity threshold
 type-complexity-threshold = 500
 
@@ -20,10 +17,10 @@ too-many-lines-threshold = 150
 too-many-arguments-threshold = 8
 
 # Maximum number of struct fields to be considered readable
-struct-field-names-threshold = 0
+struct-field-name-threshold = 0
 
 # Maximum number of enum variants to be considered readable
-enum-variant-names-threshold = 3
+enum-variant-name-threshold = 3
 
 # Minimum number of characters for a variable name
 min-ident-chars-threshold = 1
