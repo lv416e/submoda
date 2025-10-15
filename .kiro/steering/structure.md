@@ -6,7 +6,7 @@
 submoda/
 ├── .kiro/                    # Kiro spec-driven development
 │   ├── specs/               # Feature specifications
-│   │   └── submod-platform/ # Main platform spec
+│   │   └── submoda/ # Main platform spec
 │   │       ├── spec.json    # Workflow state tracking
 │   │       ├── requirements.md  # 25 requirements, 183 criteria
 │   │       ├── design.md    # Complete technical design

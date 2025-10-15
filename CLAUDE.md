@@ -15,10 +15,10 @@ Kiro-style Spec Driven Development implementation using claude code slash comman
 **Specs** (`.kiro/specs/`) - Formalize development process for individual features
 
 ### Active Specifications
-- **submod-platform**: Production-grade submodular optimization platform for large-scale subset selection problems
+- **submoda**: Production-grade submodular optimization platform for large-scale subset selection problems
   - Phase: ready-for-implementation
   - Status: Requirements ✅ | Design ✅ | Tasks ✅
-  - Next: `/kiro:spec-impl submod-platform` to begin implementation
+  - Next: `/kiro:spec-impl submoda` to begin implementation
 
 Use `/kiro:spec-status [feature-name]` to check detailed progress.
 
@@ -106,4 +106,3 @@ Managed by `/kiro:steering` command. Updates here reflect command changes.
 - **Always**: Loaded in every interaction (default)
 - **Conditional**: Loaded for specific file patterns (e.g., "*.test.js")
 - **Manual**: Reference with `@filename.md` syntax
-
