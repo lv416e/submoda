@@ -1,4 +1,4 @@
-# mise configuration for submoda development environment
+# mise configuration for submod development environment
 # https://mise.jdx.dev/
 
 [tools]
@@ -12,6 +12,8 @@ python = "3.11"
 RUST_BACKTRACE = "1"
 # Enable colored output
 CARGO_TERM_COLOR = "always"
+# Python bindings directory
+BINDINGS_DIR = "submod-bindings-py"
 
 [tasks.build]
 description = "Build all workspace crates"
@@ -47,11 +49,25 @@ run = "cargo clean"
 
 [tasks.py-build]
 description = "Build Python bindings with maturin"
-run = "cd submod-bindings-py && maturin develop"
+run = """
+if ! command -v maturin &> /dev/null; then
+    echo "Error: maturin is not installed. Please install it with:"
+    echo "  pip install maturin"
+    exit 1
+fi
+cd ${BINDINGS_DIR} && maturin develop
+"""
 
 [tasks.py-test]
 description = "Test Python bindings"
-run = "cd submod-bindings-py && python -m pytest tests/"
+run = """
+if ! command -v pytest &> /dev/null; then
+    echo "Error: pytest is not installed. Please install it with:"
+    echo "  pip install pytest"
+    exit 1
+fi
+cd ${BINDINGS_DIR} && python -m pytest tests/
+"""
 
 [tasks.service-run]
 description = "Run the gRPC/REST service"

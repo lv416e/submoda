@@ -60,5 +60,6 @@ format_macro_bodies = true
 error_on_line_overflow = false
 error_on_unformatted = false
 
-# Cargo.toml formatting
+# Experimental features toggle
+# Controls whether to enable rustfmt's unstable/experimental features globally
 unstable_features = false
