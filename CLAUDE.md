@@ -89,6 +89,37 @@ Note: Optional for new features or small additions. You can proceed directly to 
 6. **Keep steering current**: Run `/kiro:steering` after significant changes
 7. **Check spec compliance**: Use `/kiro:spec-status` to verify alignment
 
+## Git Hooks
+
+This project uses Lefthook for automated code quality checks.
+
+### Setup
+Developers must install lefthook after cloning:
+```bash
+brew install lefthook  # or: cargo install lefthook
+lefthook install
+```
+
+### Hook Behavior
+- **pre-commit**: Validates code formatting with `cargo fmt --check` (fast, ~0.3s)
+- **pre-push**: Runs clippy lints with `cargo clippy --workspace --all-targets` (thorough, ~5s)
+
+### Bypassing Hooks
+For work-in-progress commits, you may skip hooks:
+```bash
+LEFTHOOK=0 git commit -m "WIP: feature in progress"
+# or
+git commit --no-verify -m "WIP: feature in progress"
+```
+
+**Important**: Final commits should always pass all hooks before creating a PR.
+
+### Philosophy
+- Hooks catch simple mistakes locally (formatting, obvious errors)
+- They provide fast feedback before push
+- They complement (not replace) CI and CodeRabbit reviews
+- Developers can bypass for WIP, but production code must pass
+
 ## Steering Configuration
 
 ### Current Steering Files

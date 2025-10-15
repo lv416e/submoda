@@ -23,6 +23,42 @@ Specification complete. Implementation in progress.
 mise run setup
 ```
 
+### Git Hooks
+
+This project uses [Lefthook](https://github.com/evilmartians/lefthook) for automated code quality checks.
+
+**Installation:**
+
+```bash
+# macOS
+brew install lefthook
+
+# or using cargo
+cargo install lefthook
+
+# Install hooks
+lefthook install
+```
+
+**Hooks:**
+- **pre-commit**: Runs `cargo fmt --check` (~0.3s)
+- **pre-push**: Runs `cargo clippy --workspace --all-targets` (~5s)
+
+**Skip hooks temporarily (for WIP commits):**
+
+```bash
+LEFTHOOK=0 git commit -m "WIP: work in progress"
+# or
+git commit --no-verify -m "WIP: work in progress"
+```
+
+**Manual checks:**
+
+```bash
+lefthook run pre-commit  # Run formatting check
+lefthook run pre-push    # Run clippy check
+```
+
 ### Tasks
 
 ```bash
