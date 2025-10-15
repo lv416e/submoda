@@ -9,7 +9,6 @@ pre-commit:
   parallel: true
   commands:
     fmt:
-      glob: "*.rs"
       run: cargo fmt --check
 
 # Pre-push hook: Thorough checks before pushing

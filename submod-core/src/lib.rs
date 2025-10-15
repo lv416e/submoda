@@ -45,3 +45,4 @@ mod tests {
         assert_eq!(std::mem::size_of::<Weight>(), 4);
     }
 }
+// Test comment for lefthook
