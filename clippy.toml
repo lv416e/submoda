@@ -1,0 +1,49 @@
+# Clippy configuration for submoda workspace
+# https://doc.rust-lang.org/clippy/lint_configuration.html
+
+# Cognitive complexity threshold for functions
+cognitive-complexity-threshold = 30
+
+# Cyclomatic complexity threshold
+cyclomatic-complexity-threshold = 15
+
+# Type complexity threshold
+type-complexity-threshold = 500
+
+# Maximum number of single char bindings in scope
+single-char-binding-names-threshold = 4
+
+# Minimum number of lines for a function to be considered "too many lines"
+too-many-lines-threshold = 150
+
+# Maximum number of arguments for a function
+too-many-arguments-threshold = 8
+
+# Maximum number of struct fields to be considered readable
+struct-field-names-threshold = 0
+
+# Maximum number of enum variants to be considered readable
+enum-variant-names-threshold = 3
+
+# Minimum number of characters for a variable name
+min-ident-chars-threshold = 1
+
+# Lints to allow (context-specific, often intentional)
+# These are typically allowed because they're common patterns in mathematical/scientific code
+# or have legitimate use cases in high-performance computing
+
+# Lints to warn on (default behavior, shown for documentation)
+# Most clippy lints will warn by default
+
+# Additional strict lints we want to enforce
+# These should be enabled via #![warn(...)] in lib.rs/main.rs of each crate:
+# - clippy::all
+# - clippy::pedantic (with selective allows as needed)
+# - clippy::nursery (experimental but useful)
+# - clippy::cargo (workspace-level checks)
+
+# Specific allows for mathematical/scientific computing context:
+# - clippy::float_cmp: We may need exact float comparisons in tests
+# - clippy::cast_possible_truncation: Common in index conversions
+# - clippy::cast_precision_loss: Acceptable in scientific computing
+# - clippy::similar_names: Mathematical variables often have similar names (e.g., i, j, k)
