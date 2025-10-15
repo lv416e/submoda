@@ -4,6 +4,11 @@ Kiro-style Spec Driven Development implementation using claude code slash comman
 
 ## Project Context
 
+### Project Information
+- **Project Name**: `submoda` (repository name)
+- **Crate Prefix**: `submod-` (e.g., submod-core, submod-solver, submod-io)
+- **License**: Apache-2.0
+
 ### Paths
 - Steering: `.kiro/steering/`
 - Specs: `.kiro/specs/`
