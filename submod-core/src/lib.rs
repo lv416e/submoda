@@ -25,8 +25,8 @@ pub type ItemId = u32;
 
 /// Core type for numerical weights and objective values.
 ///
-/// Default: `f32` for memory efficiency and wider SIMD.
-/// Configurable to `f64` for numerically sensitive operations (e.g., Log-Determinant).
+/// Currently: `f32` for memory efficiency and wider SIMD.
+/// Future: May support `f64` via feature flag for numerically sensitive operations (e.g., Log-Determinant).
 pub type Weight = f32;
 
 #[cfg(test)]
