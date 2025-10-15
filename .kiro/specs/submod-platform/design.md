@@ -2350,4 +2350,4 @@ tests/
 
 **Design Status:** Generated, pending human review
 
-**Next Step:** Review this design document, then run `/kiro:spec-tasks submod-platform` to generate implementation tasks.
+**Next Step:** Review this design document, then run `/kiro:spec-tasks submoda` to generate implementation tasks.
