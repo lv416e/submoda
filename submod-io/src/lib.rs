@@ -2,11 +2,17 @@
 //!
 //! Efficient Parquet/Arrow data loading and sparse matrix construction.
 //!
-//! This crate provides:
-//! - Parquet reader with predicate pushdown and row-group optimization
-//! - CSR/CSC sparse matrix construction from triplets
-//! - Hash-based sharding for parallel loading
-//! - Async prefetching for streaming scenarios
+//! ## Currently Implemented
+//!
+//! This crate is in initial setup phase. No I/O functionality is implemented yet.
+//!
+//! ## Planned (TODO)
+//!
+//! The following features will be implemented in future tasks:
+//! - Parquet reader with predicate pushdown and row-group optimization (Task 4.x)
+//! - CSR/CSC sparse matrix construction from triplets (Task 4.x)
+//! - Hash-based sharding for parallel loading (Task 4.x)
+//! - Async prefetching for streaming scenarios (Task 4.x)
 
 #![warn(missing_docs)]
 #![warn(clippy::all)]

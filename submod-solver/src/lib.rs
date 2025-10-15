@@ -2,11 +2,17 @@
 //!
 //! Optimization algorithm implementations for submodular maximization.
 //!
-//! This crate provides:
-//! - `LazyGreedy`: Epoch-based optimization reducing evaluations by 90-95%
-//! - `StochasticGreedy`: O(n log 1/ε) complexity for massive-scale problems
-//! - `ContinuousGreedy`: Handles complex matroid constraints
-//! - `SieveStreaming`: Single-pass streaming for online scenarios
+//! ## Currently Implemented
+//!
+//! This crate is in initial setup phase. No algorithms are implemented yet.
+//!
+//! ## Planned (TODO)
+//!
+//! The following algorithms will be implemented in future tasks:
+//! - `LazyGreedy`: Epoch-based optimization reducing evaluations by 90-95% (Task 2.x)
+//! - `StochasticGreedy`: O(n log 1/ε) complexity for massive-scale problems (Task 2.x)
+//! - `ContinuousGreedy`: Handles complex matroid constraints (Task 2.x)
+//! - `SieveStreaming`: Single-pass streaming for online scenarios (Task 2.x)
 
 #![warn(missing_docs)]
 #![warn(clippy::all)]
