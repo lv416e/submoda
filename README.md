@@ -52,11 +52,11 @@ LEFTHOOK=0 git commit -m "WIP: work in progress"
 git commit --no-verify -m "WIP: work in progress"
 ```
 
-**Manual checks:**
+**Manual checks** (useful for testing hooks before committing or fixing issues):
 
 ```bash
-lefthook run pre-commit  # Run formatting check
-lefthook run pre-push    # Run clippy check
+lefthook run pre-commit  # Run formatting check manually
+lefthook run pre-push    # Run clippy check manually
 ```
 
 ### Tasks

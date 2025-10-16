@@ -91,7 +91,15 @@ Note: Optional for new features or small additions. You can proceed directly to 
 
 ## Git Hooks
 
-This project uses Lefthook for automated code quality checks.
+This project uses [Lefthook](https://github.com/evilmartians/lefthook) for automated code quality checks.
+
+**Why Lefthook?**
+- Fast and language-agnostic (written in Go)
+- Supports parallel execution of hooks
+- Simple YAML configuration
+- Cross-platform compatibility (macOS, Linux, Windows)
+- No runtime dependencies (single binary)
+- Better performance compared to alternatives like Husky (Node.js) or pre-commit (Python)
 
 ### Setup
 Developers must install lefthook after cloning:

@@ -49,6 +49,8 @@ serde_json = "1.0"
 tonic = "0.12"
 prost = "0.13"
 axum = "0.7"
+# tokio: rt-multi-thread for async runtime, macros for #[tokio::main] and #[tokio::test]
+# Avoids "full" feature to reduce compile times and binary size
 tokio = { version = "1.48", features = ["rt-multi-thread", "macros"] }
 
 # Python Bindings
@@ -70,6 +72,8 @@ log = "0.4"
 [profile.dev]
 opt-level = 0
 debug = true
+# Incremental compilation speeds up local development builds by caching intermediate results
+# Note: Can occasionally cause unexpected behavior; run `cargo clean` if issues arise
 incremental = true
 
 [profile.release]
