@@ -15,6 +15,9 @@
 //! - Authentication and authorization (Task 6.x)
 //! - Prometheus metrics endpoint (Task 6.x)
 
+#![warn(missing_docs)]
+#![warn(clippy::all)]
+
 fn main() {
     println!("submod-service placeholder");
     // Service implementation will be added in later phases
