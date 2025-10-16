@@ -102,7 +102,7 @@ lefthook install
 
 ### Hook Behavior
 - **pre-commit**: Validates code formatting with `cargo fmt --check` (fast, ~0.3s)
-- **pre-push**: Runs clippy lints with `cargo clippy --workspace --all-targets` (thorough, ~5s)
+- **pre-push**: Runs clippy lints with `cargo clippy --workspace --all-targets -- -D warnings` (thorough, ~5s)
 
 ### Bypassing Hooks
 For work-in-progress commits, you may skip hooks:

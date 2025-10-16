@@ -42,7 +42,7 @@ lefthook install
 
 **Hooks:**
 - **pre-commit**: Runs `cargo fmt --check` (~0.3s)
-- **pre-push**: Runs `cargo clippy --workspace --all-targets` (~5s)
+- **pre-push**: Runs `cargo clippy --workspace --all-targets -- -D warnings` (~5s)
 
 **Skip hooks temporarily (for WIP commits):**
 
