@@ -47,8 +47,6 @@ lefthook install
 **Skip hooks temporarily (for WIP commits):**
 
 ```bash
-LEFTHOOK=0 git commit -m "WIP: work in progress"
-# or
 git commit --no-verify -m "WIP: work in progress"
 ```
 

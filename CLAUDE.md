@@ -115,8 +115,6 @@ lefthook install
 ### Bypassing Hooks
 For work-in-progress commits, you may skip hooks:
 ```bash
-LEFTHOOK=0 git commit -m "WIP: feature in progress"
-# or
 git commit --no-verify -m "WIP: feature in progress"
 ```
 
