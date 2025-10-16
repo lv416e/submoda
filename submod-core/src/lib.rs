@@ -20,7 +20,7 @@
 /// Core type for element identifiers.
 ///
 /// Uses `u32` by default, supporting up to 4.3 billion candidates.
-/// Can be configured to `u64` for extreme-scale problems.
+/// Future: May be configurable to `u64` for extreme-scale problems.
 pub type ItemId = u32;
 
 /// Core type for numerical weights and objective values.
