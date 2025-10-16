@@ -27,8 +27,8 @@ fixedbitset = "0.5"
 rayon = "1.10"
 
 # Numerical Computing
-nalgebra = "0.32"
-ndarray = "0.15"
+nalgebra = "0.33"
+ndarray = "0.16.1"
 
 # Data I/O
 arrow = "56"
@@ -46,12 +46,12 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # Service Layer
-tonic = "0.12"
-prost = "0.13"
-axum = "0.7"
+tonic = "0.14.2"
+prost = "0.14.1"
+axum = "0.8.6"
 # tokio: rt-multi-thread for async runtime, macros for #[tokio::main] and #[tokio::test]
 # Avoids "full" feature to reduce compile times and binary size
-tokio = { version = "1.48", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros"] }
 
 # Python Bindings
 pyo3 = { version = "0.26", features = ["extension-module"] }
