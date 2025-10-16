@@ -20,13 +20,16 @@
 /// Core type for element identifiers.
 ///
 /// Uses `u32` by default, supporting up to 4.3 billion candidates.
-/// Future: May be configurable to `u64` for extreme-scale problems.
+///
+/// **Note**: Configurability to `u64` is planned for future work to support extreme-scale problems.
 pub type ItemId = u32;
 
 /// Core type for numerical weights and objective values.
 ///
 /// Currently: `f32` for memory efficiency and wider SIMD.
-/// Future: May support `f64` via feature flag for numerically sensitive operations (e.g., Log-Determinant).
+///
+/// **Note**: Support for `f64` via feature flag is planned for future work to handle
+/// numerically sensitive operations (e.g., Log-Determinant).
 pub type Weight = f32;
 
 #[cfg(test)]
