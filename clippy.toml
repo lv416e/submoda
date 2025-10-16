@@ -16,15 +16,6 @@ too-many-lines-threshold = 150
 # Maximum number of arguments for a function
 too-many-arguments-threshold = 8
 
-# Maximum number of struct fields to be considered readable
-struct-field-name-threshold = 0
-
-# Maximum number of enum variants to be considered readable
-enum-variant-name-threshold = 3
-
-# Minimum number of characters for a variable name
-min-ident-chars-threshold = 1
-
 # Lints to allow (context-specific, often intentional)
 # These are typically allowed because they're common patterns in mathematical/scientific code
 # or have legitimate use cases in high-performance computing
@@ -40,6 +31,7 @@ min-ident-chars-threshold = 1
 # - clippy::cargo (workspace-level checks)
 
 # Specific allows for mathematical/scientific computing context:
+# These should be configured in each crate's lib.rs/main.rs using #![allow(...)]
 # - clippy::float_cmp: We may need exact float comparisons in tests
 # - clippy::cast_possible_truncation: Common in index conversions
 # - clippy::cast_precision_loss: Acceptable in scientific computing

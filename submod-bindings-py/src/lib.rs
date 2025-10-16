@@ -20,9 +20,8 @@ use pyo3::prelude::*;
 
 /// Python module initialization.
 #[pymodule]
-fn submod(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn submod(_m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Placeholder module initialization
-    let _ = m; // Suppress unused variable warning
     Ok(())
 }
 
