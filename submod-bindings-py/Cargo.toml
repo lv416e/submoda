@@ -23,7 +23,7 @@ submod-objectives = { path = "../submod-objectives" }
 submod-io = { path = "../submod-io" }
 
 # Python bindings
-pyo3 = { workspace = true, features = ["extension-module"] }
+pyo3 = { workspace = true }
 numpy = { workspace = true }
 
 # Error handling
