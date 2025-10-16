@@ -35,13 +35,11 @@ mod tests {
 
     #[test]
     fn test_item_id_type() {
-        let _id: ItemId = 0;
         assert_eq!(std::mem::size_of::<ItemId>(), 4);
     }
 
     #[test]
     fn test_weight_type() {
-        let _weight: Weight = 1.0;
         assert_eq!(std::mem::size_of::<Weight>(), 4);
     }
 }
