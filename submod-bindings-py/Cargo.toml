@@ -1,0 +1,33 @@
+[package]
+name = "submod-bindings-py"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[lib]
+name = "submod"
+crate-type = ["cdylib"]
+
+[dependencies]
+# Workspace crates
+submod-core = { path = "../submod-core" }
+submod-solver = { path = "../submod-solver" }
+submod-objectives = { path = "../submod-objectives" }
+submod-io = { path = "../submod-io" }
+
+# Python bindings
+pyo3 = { workspace = true }
+numpy = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+log = { workspace = true }

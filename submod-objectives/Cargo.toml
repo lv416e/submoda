@@ -1,0 +1,32 @@
+[package]
+name = "submod-objectives"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+# Workspace crates
+submod-core = { path = "../submod-core" }
+submod-io = { path = "../submod-io" }
+
+# Numerical computing
+nalgebra = { workspace = true }
+
+# Parallel processing
+rayon = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+log = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }

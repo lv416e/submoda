@@ -1,0 +1,48 @@
+[package]
+name = "submod-service"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[[bin]]
+name = "submod-service"
+path = "src/main.rs"
+
+[dependencies]
+# Workspace crates
+submod-core = { path = "../submod-core" }
+submod-solver = { path = "../submod-solver" }
+submod-objectives = { path = "../submod-objectives" }
+submod-io = { path = "../submod-io" }
+
+# Service layer
+tonic = { workspace = true }
+prost = { workspace = true }
+axum = { workspace = true }
+tokio = { workspace = true }
+
+# Observability
+prometheus = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Logging
+log = { workspace = true }
+
+[build-dependencies]
+tonic-build = "0.12"

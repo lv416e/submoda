@@ -4,6 +4,11 @@ Kiro-style Spec Driven Development implementation using claude code slash comman
 
 ## Project Context
 
+### Project Information
+- **Project Name**: `submoda` (repository name)
+- **Crate Prefix**: `submod-` (e.g., submod-core, submod-solver, submod-io)
+- **License**: Apache-2.0
+
 ### Paths
 - Steering: `.kiro/steering/`
 - Specs: `.kiro/specs/`
@@ -83,6 +88,43 @@ Note: Optional for new features or small additions. You can proceed directly to 
 5. **Update task status**: Mark tasks as completed when working on them
 6. **Keep steering current**: Run `/kiro:steering` after significant changes
 7. **Check spec compliance**: Use `/kiro:spec-status` to verify alignment
+
+## Git Hooks
+
+This project uses [Lefthook](https://github.com/evilmartians/lefthook) for automated code quality checks.
+
+**Why Lefthook?**
+- Fast and language-agnostic (written in Go)
+- Supports parallel execution of hooks
+- Simple YAML configuration
+- Cross-platform compatibility (macOS, Linux, Windows)
+- No runtime dependencies (single binary)
+- Better performance compared to alternatives like Husky (Node.js) or pre-commit (Python)
+
+### Setup
+Developers must install lefthook after cloning:
+```bash
+brew install lefthook  # or: cargo install lefthook
+lefthook install
+```
+
+### Hook Behavior
+- **pre-commit**: Validates code formatting with `cargo fmt --check` (fast, ~0.3s)
+- **pre-push**: Runs clippy lints with `cargo clippy --workspace --all-targets -- -D warnings` (thorough, ~5s)
+
+### Bypassing Hooks
+For work-in-progress commits, you may skip hooks:
+```bash
+git commit --no-verify -m "WIP: feature in progress"
+```
+
+**Important**: Final commits should always pass all hooks before creating a PR.
+
+### Philosophy
+- Hooks catch simple mistakes locally (formatting, obvious errors)
+- They provide fast feedback before push
+- They complement (not replace) CI and CodeRabbit reviews
+- Developers can bypass for WIP, but production code must pass
 
 ## Steering Configuration
 

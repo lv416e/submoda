@@ -1,0 +1,39 @@
+[package]
+name = "submod-solver"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+documentation.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+# Workspace crates
+submod-core = { path = "../submod-core" }
+
+# Randomness
+rand = { workspace = true }
+rand_chacha = { workspace = true }
+
+# Parallel processing
+rayon = { workspace = true }
+
+# Observability
+prometheus = { workspace = true }
+tracing = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+log = { workspace = true }
+
+[dev-dependencies]
+proptest = { workspace = true }
+criterion = { workspace = true }

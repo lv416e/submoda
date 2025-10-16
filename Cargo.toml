@@ -1,0 +1,87 @@
+[workspace]
+resolver = "2"
+members = [
+    "submod-core",
+    "submod-objectives",
+    "submod-solver",
+    "submod-io",
+    "submod-bindings-py",
+    "submod-service",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+authors = ["Submoda Contributors"]
+license = "Apache-2.0"
+repository = "https://github.com/submoda/submoda"
+homepage = "https://github.com/submoda/submoda"
+documentation = "https://docs.rs/submoda"
+keywords = ["submodular", "optimization", "greedy", "machine-learning"]
+categories = ["algorithms", "mathematics", "science"]
+
+[workspace.dependencies]
+# Core Data Structures
+fixedbitset = "0.5"
+rayon = "1.10"
+
+# Numerical Computing
+nalgebra = "0.33"
+ndarray = "0.16.1"
+
+# Data I/O
+arrow = "56"
+parquet = "56"
+
+# Randomness
+rand = "0.8"
+rand_chacha = "0.3"
+
+# Observability
+prometheus = "0.13"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Service Layer
+tonic = "0.14.2"
+prost = "0.14.1"
+axum = "0.8.6"
+# tokio: rt-multi-thread for async runtime, macros for #[tokio::main] and #[tokio::test]
+# Avoids "full" feature to reduce compile times and binary size
+tokio = { version = "1.47.1", features = ["rt-multi-thread", "macros"] }
+
+# Python Bindings
+pyo3 = { version = "0.26", features = ["extension-module"] }
+numpy = "0.26"
+
+# Error Handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Testing
+proptest = "1.7"
+criterion = "0.5"
+
+# Utilities
+crossbeam = "0.8"
+log = "0.4"
+
+[profile.dev]
+opt-level = 0
+debug = true
+# Incremental compilation speeds up local development builds by caching intermediate results
+# Note: Can occasionally cause unexpected behavior; run `cargo clean` if issues arise
+incremental = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+debug = false
+
+[profile.bench]
+inherits = "release"
